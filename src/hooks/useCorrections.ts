@@ -22,6 +22,11 @@ function dedupe(suggestions: BackendSuggestion[]): KorrekturVorschlag[] {
   return [...map.values()];
 }
 
+interface CorrectionOptions {
+  ollamaUrl: string;
+  ollamaModel: string;
+}
+
 export function useCorrections() {
   const [text, setText] = useState("");
   const [path, setPath] = useState("");
@@ -36,19 +41,26 @@ export function useCorrections() {
     return { gesamt: vorschlaege.length, angenommen, abgelehnt };
   }, [vorschlaege]);
 
-  async function analysiere(pdfPath: string, modus: PipelineModus) {
+  async function analysiere(pdfPath: string, modus: PipelineModus, opts?: CorrectionOptions) {
     setError("");
     setPath(pdfPath);
     const extracted = await invoke<string>("extract_text_from_pdf", { path: pdfPath });
     setText(extracted);
 
+    const ollamaUrl = opts?.ollamaUrl || "http://127.0.0.1:11434";
+    const modelOverride = opts?.ollamaModel || "";
+
     const jobs: Promise<BackendSuggestion[]>[] = [];
     if (modus !== "woerterbuch") {
       setLoadingKi(true);
       jobs.push(
-        invoke<BackendSuggestion[]>("check_spelling_ai", { text: extracted })
-          .catch(() => {
-            setError("KI nicht erreichbar - nur Wörterbuch-Modus verfügbar");
+        invoke<BackendSuggestion[]>("check_spelling_ai", {
+          text: extracted,
+          ollamaUrl,
+          modelOverride,
+        })
+          .catch((e: unknown) => {
+            setError(String(e));
             return [];
           })
           .finally(() => setLoadingKi(false)),

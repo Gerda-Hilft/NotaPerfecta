@@ -8,13 +8,13 @@ interface Props {
 export function PipelineToggle({ value, onChange }: Props) {
   return (
     <div className="pipeline-toggle">
-      <button className={value === "ki" ? "aktiv" : ""} onClick={() => onChange("ki")}>
+      <button className={`chip ${value === "ki" ? "chip-active" : ""}`} onClick={() => onChange("ki")}>
         Nur KI
       </button>
-      <button className={value === "woerterbuch" ? "aktiv" : ""} onClick={() => onChange("woerterbuch")}>
+      <button className={`chip ${value === "woerterbuch" ? "chip-active" : ""}`} onClick={() => onChange("woerterbuch")}>
         Nur Wörterbuch
       </button>
-      <button className={value === "beides" ? "aktiv" : ""} onClick={() => onChange("beides")}>
+      <button className={`chip ${value === "beides" ? "chip-active" : ""}`} onClick={() => onChange("beides")}>
         Beides
       </button>
     </div>

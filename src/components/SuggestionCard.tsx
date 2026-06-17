@@ -10,16 +10,20 @@ export function SuggestionCard({ v, onAccept, onReject }: Props) {
   return (
     <article className={`karte ${v.status}`}>
       <div className="karte-kopf">
-        <strong>{v.type}</strong>
-        <span className="badge">{v.source}</span>
+        <span className="badge">{v.type}</span>
+        <span className="badge badge-muted">{v.source}</span>
       </div>
       <p>
         <span className="alt">{v.original}</span> → <span className="neu">{v.correction}</span>
       </p>
       <small>{v.explanation}</small>
       <div className="aktionen">
-        <button onClick={onAccept}>✓ Annehmen</button>
-        <button onClick={onReject}>✗ Ablehnen</button>
+        <button className="btn btn-outline btn-sm" onClick={onAccept}>
+          ✓ Annehmen
+        </button>
+        <button className="btn btn-ghost btn-sm" onClick={onReject}>
+          ✗ Ablehnen
+        </button>
       </div>
     </article>
   );

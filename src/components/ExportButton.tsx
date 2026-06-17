@@ -5,7 +5,7 @@ interface Props {
 
 export function ExportButton({ disabled, onExport }: Props) {
   return (
-    <button disabled={disabled} onClick={onExport}>
+    <button className="btn btn-primary btn-sm" disabled={disabled} onClick={onExport}>
       Korrigiertes PDF exportieren
     </button>
   );
