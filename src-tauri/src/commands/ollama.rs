@@ -5,7 +5,35 @@ use serde_json::Value;
 
 fn prompt(text: &str) -> String {
     format!(
-        "Du bist ein Lektor für deutsche Schulzeugnisse. Analysiere den folgenden Text ausschließlich auf eindeutige Rechtschreib-, Grammatik- und Zeichensetzungsfehler.\n\nNICHT als Fehler melden, niemals ändern:\n- Geschlechtergerechte und weibliche Formen (z. B. \"Lehrerinnen\", \"Schülerin\", \"Erzieher:innen\", \"Kolleg*innen\", \"MitarbeiterInnen\"). Diese sind korrekt, auch wenn die männliche Form gebräuchlicher ist, und dürfen NIEMALS in eine generische männliche Form geändert oder entfernt werden.\n- Eigennamen von Personen, Schulen, Orten, Fächern oder Marken, auch wenn sie ungewöhnlich erscheinen.\n- Zahlen, Daten, Noten und Maßeinheiten.\n- Übliche Zeugnis-Standardformulierungen (z. B. \"stets\", \"in der Regel\", \"zuverlässig\", \"mit großem Interesse\").\n- Stilistische Alternativen. Melde nur, wenn etwas eindeutig falsch ist.\n\nWenn du unsicher bist, ob etwas ein Fehler ist, melde es NICHT.\n\nAntworte NUR mit einem JSON-Array. Kein erklärender Text davor oder danach. Format:\n[\n  {{\n    \"original\": \"fehlerhaftes Wort oder Phrase\",\n    \"korrektur\": \"korrigierte Version\",\n    \"typ\": \"Rechtschreibung\" | \"Grammatik\" | \"Zeichensetzung\",\n    \"erklaerung\": \"kurze Begründung auf Deutsch\"\n  }}\n]\n\nText:\n{}",
+        r#"Du bist ein spezialisierter Lektor für sächsische Schulzeugnisse (Halbjahresinformationen Kl. 5–9, Halbjahreszeugnisse Kl. 10).
+
+Der folgende Text wurde aus einem Zeugnis-PDF extrahiert. Prüfe NUR den Freitext in den Bemerkungen auf Rechtschreib-, Grammatik- und Zeichensetzungsfehler.
+
+Formvorschriften (Notentendenzen, Versetzungsgefährdung, Standard-Bemerkungen) werden separat geprüft — melde dazu NICHTS.
+
+NIEMALS als Fehler melden:
+• Fächernamen, Kopfnoten-Bezeichnungen, Formular-Überschriften und Labels
+• Eigennamen (Personen, Schulen, Orte)
+• Geschlechtergerechte Formen (Lehrerinnen, Schülerin, Lehrer:innen usw.)
+• Zahlen, Daten, Klassenstufen, Schuljahre, Noten
+• Notenerläuterung
+• Standardformulierungen: „Versetzung … gefährdet", „Fehltage entschuldigt:", „erteilt"
+• Stilistische Alternativen — nur eindeutige Fehler
+
+Bei Unsicherheit: NICHT melden.
+
+Antworte NUR mit einem JSON-Array. Kein Text davor oder danach. Bei keinen Fehlern: []
+[
+  {{
+    "original": "fehlerhaftes Wort oder Phrase",
+    "korrektur": "korrigierte Version",
+    "typ": "Rechtschreibung" | "Grammatik" | "Zeichensetzung",
+    "erklaerung": "kurze Begründung auf Deutsch"
+  }}
+]
+
+Text:
+{}"#,
         text
     )
 }
@@ -17,6 +45,44 @@ fn extract_json_array(input: &str) -> Option<String> {
 
 const GENDER_SUFFIXES: [&str; 2] = ["innen", "in"];
 const GENDER_SEPARATORS: [char; 5] = ['*', ':', '_', '/', '-'];
+
+const ZEUGNIS_IGNORE: &[&str] = &[
+    "Halbjahresinformation", "Halbjahreszeugnis", "Jahreszeugnis",
+    "Gymnasium", "Gymnasiums", "Schulhalbjahr", "Klassenstufe",
+    "Fremdsprache", "Wahlpflichtbereich",
+    "Notenerläuterung", "Klassenlehrer", "Klassenlehrer(in)", "Klassenlehrerin",
+    "Betragen", "Mitarbeit", "Fleiß", "Ordnung",
+    "Deutsch", "Mathematik", "Englisch", "Biologie", "Französisch", "Chemie",
+    "Kunst", "Physik", "Musik", "Sport", "Geschichte", "Ethik", "Religion",
+    "Gemeinschaftskunde", "Rechtserziehung", "Wirtschaft", "Geographie",
+    "Informatik", "Technik", "Computer",
+    "sehr gut", "gut", "befriedigend", "ausreichend", "mangelhaft", "ungenügend",
+    "entschuldigt", "unentschuldigt", "Fehltage", "Bemerkungen",
+    "Versetzung", "gefährdet", "versetzungsgefährdet",
+    "erteilt", "nicht erteilt", "teilgenommen", "befreit", "nicht bewertet",
+    "keine Benotung", "Zusatzstunde",
+    "Freistaat", "Sachsen", "schulspezifisches", "Profil",
+    "Kenntnis", "genommen",
+    "Lernen lernen", "individuelle Förderung", "Urban Dance",
+    "Laufbahn", "M.I.T.",
+    "Klassenkonferenz", "Schulleiterin",
+];
+
+fn is_zeugnis_term(original: &str) -> bool {
+    let trimmed = original.trim();
+    ZEUGNIS_IGNORE.iter().any(|term| {
+        trimmed.eq_ignore_ascii_case(term) || trimmed.contains(term)
+    })
+}
+
+fn is_grade(s: &str) -> bool {
+    let t = s.trim();
+    matches!(
+        t,
+        "1" | "1+" | "1-" | "2" | "2+" | "2-" | "3" | "3+" | "3-"
+            | "4" | "4+" | "4-" | "5" | "5+" | "5-" | "6" | "-"
+    )
+}
 
 /// Returns the gender-neutral base of `word` if it ends in a feminine or
 /// gender-inclusive suffix (e.g. "Lehrerinnen", "Lehrer:in", "LehrerInnen"),
@@ -164,7 +230,11 @@ pub async fn check_spelling_ai(
 
     let suggestions = parsed
         .into_iter()
-        .filter(|s| !is_gender_removal(&s.original, &s.correction))
+        .filter(|s| {
+            !is_gender_removal(&s.original, &s.correction)
+                && !is_zeugnis_term(&s.original)
+                && !is_grade(&s.original)
+        })
         .enumerate()
         .map(|(i, s)| AiSuggestion {
             original: s.original,
@@ -172,7 +242,6 @@ pub async fn check_spelling_ai(
             kind: s.kind,
             position: i,
             explanation: s.explanation,
-            source: "KI".to_string(),
         })
         .collect();
 

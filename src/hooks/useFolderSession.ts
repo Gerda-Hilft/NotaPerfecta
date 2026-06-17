@@ -1,14 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useState, useCallback } from "react";
-import type { ExportKorrektur, KorrekturVorschlag, PipelineModus } from "../types/corrections";
+import type { ExportKorrektur, KorrekturVorschlag } from "../types/corrections";
 
 type BackendSuggestion = {
   original: string;
   correction: string;
-  type: "Rechtschreibung" | "Grammatik" | "Zeichensetzung";
+  type: "Rechtschreibung" | "Grammatik" | "Zeichensetzung" | "Formvorschrift";
   position: number;
   explanation: string;
-  source: "KI" | "Wörterbuch";
 };
 
 function dedupe(suggestions: BackendSuggestion[]): KorrekturVorschlag[] {
@@ -39,7 +38,6 @@ export function istFertig(d: DateiEintrag): boolean {
 }
 
 interface AnalyseOpts {
-  modus: PipelineModus;
   ollamaUrl: string;
   ollamaModel: string;
 }
@@ -86,23 +84,17 @@ export function useFolderSession() {
     try {
       const text = await invoke<string>("extract_text_from_pdf", { path: pfad });
 
-      const jobs: Promise<BackendSuggestion[]>[] = [];
-      if (opts.modus !== "woerterbuch") {
-        jobs.push(
-          invoke<BackendSuggestion[]>("check_spelling_ai", {
-            text,
-            ollamaUrl: opts.ollamaUrl,
-            modelOverride: opts.ollamaModel,
-          }).catch(() => []),
-        );
-      }
-      if (opts.modus !== "ki") {
-        jobs.push(
-          invoke<BackendSuggestion[]>("check_spelling_dictionary", { text }).catch(() => []),
-        );
-      }
-
-      const suggestions = (await Promise.all(jobs)).flat();
+      const [aiSuggestions, formSuggestions] = await Promise.all([
+        invoke<BackendSuggestion[]>("check_spelling_ai", {
+          text,
+          ollamaUrl: opts.ollamaUrl,
+          modelOverride: opts.ollamaModel,
+        }).catch(() => [] as BackendSuggestion[]),
+        invoke<BackendSuggestion[]>("check_formvorschriften", {
+          path: pfad,
+        }).catch(() => [] as BackendSuggestion[]),
+      ]);
+      const suggestions = [...formSuggestions, ...aiSuggestions];
 
       setDateien((prev) =>
         prev.map((d) =>

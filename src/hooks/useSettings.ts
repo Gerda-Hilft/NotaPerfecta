@@ -1,10 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import type { PipelineModus } from "../types/corrections";
 
 export interface AppSettings {
   ollamaUrl: string;
   ollamaModel: string;
-  defaultModus: PipelineModus;
 }
 
 const STORAGE_KEY = "notaperfecta-settings";
@@ -12,7 +10,6 @@ const STORAGE_KEY = "notaperfecta-settings";
 const DEFAULTS: AppSettings = {
   ollamaUrl: "http://127.0.0.1:11434",
   ollamaModel: "",
-  defaultModus: "beides",
 };
 
 function load(): AppSettings {
