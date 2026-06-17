@@ -90,6 +90,7 @@ export function useCorrections() {
 
   return {
     text,
+    path,
     loadingKi,
     error,
     vorschlaege,
