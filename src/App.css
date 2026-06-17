@@ -313,7 +313,6 @@ h1, h2, h3, .display {
 }
 
 /* ── Status / toolbar rows ─────────────────────── */
-.pipeline-toggle,
 .status,
 .toolbar {
   display: flex;
@@ -684,20 +683,20 @@ pre {
   background: linear-gradient(180deg, #4A4035, #342E29);
 }
 /* Rivets on sidebar header */
+.sidebar-header::before,
 .sidebar-header::after {
   content: '';
   position: absolute;
   top: 50%;
-  left: 14px;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   transform: translateY(-50%);
   background: radial-gradient(circle at 35% 35%, #6B5E50, #3A3228);
-  box-shadow:
-    calc(100% - 28px) 0 0 0 #4A4035,
-    0 0 1px rgba(0,0,0,0.5);
+  box-shadow: 0 0 1px rgba(0,0,0,0.5);
 }
+.sidebar-header::before { left: 14px; }
+.sidebar-header::after { right: 14px; }
 
 .sidebar-title {
   font-family: var(--font-display);
