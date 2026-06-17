@@ -1,5 +1,3 @@
-import { useEffect } from "react";
-
 function ScrewHead() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
@@ -19,17 +17,6 @@ function ScrewHead() {
 }
 
 export function Background() {
-  useEffect(() => {
-    function onMove(e: PointerEvent) {
-      const x = (e.clientX / window.innerWidth - 0.5) * 40;
-      const y = (e.clientY / window.innerHeight - 0.5) * 40;
-      document.documentElement.style.setProperty("--pointer-x", x.toFixed(2));
-      document.documentElement.style.setProperty("--pointer-y", y.toFixed(2));
-    }
-    window.addEventListener("pointermove", onMove, { passive: true });
-    return () => window.removeEventListener("pointermove", onMove);
-  }, []);
-
   return (
     <div className="bg-field" aria-hidden="true">
       <div className="bg-streaks" />
