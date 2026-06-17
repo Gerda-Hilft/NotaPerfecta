@@ -1,8 +1,8 @@
 mod commands;
 mod models;
 
-use commands::{dictionary, export, ollama, pdf};
-use models::{AiSuggestion, Correction, SpellingError};
+use commands::{export, formcheck, ollama, pdf};
+use models::{AiSuggestion, Correction};
 use std::path::Path;
 
 #[tauri::command]
@@ -11,8 +11,8 @@ async fn extract_text_from_pdf(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn check_spelling_dictionary(text: String) -> Result<Vec<SpellingError>, String> {
-    dictionary::check_spelling_dictionary(text).await
+fn check_formvorschriften(path: String) -> Result<Vec<AiSuggestion>, String> {
+    formcheck::check(&path)
 }
 
 #[tauri::command]
@@ -81,7 +81,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             extract_text_from_pdf,
-            check_spelling_dictionary,
+            check_formvorschriften,
             check_spelling_ai,
             list_ollama_models,
             list_pdf_files,

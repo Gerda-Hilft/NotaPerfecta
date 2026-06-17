@@ -1,17 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SpellingError {
-    pub original: String,
-    pub correction: String,
-    #[serde(rename = "type")]
-    pub kind: String,
-    pub position: usize,
-    pub explanation: String,
-    pub source: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AiSuggestion {
     pub original: String,
     pub correction: String,
@@ -19,7 +8,6 @@ pub struct AiSuggestion {
     pub kind: String,
     pub position: usize,
     pub explanation: String,
-    pub source: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { AppSettings } from "../hooks/useSettings";
-import type { PipelineModus } from "../types/corrections";
 
 interface Props {
   open: boolean;
@@ -88,22 +87,6 @@ export function SettingsDialog({ open, settings, onUpdate, onReset, onClose }: P
             </label>
           </fieldset>
 
-          <fieldset className="settings-group">
-            <legend>Analyse</legend>
-
-            <label className="settings-label">
-              Standard-Pipeline
-              <select
-                className="settings-select"
-                value={settings.defaultModus}
-                onChange={(e) => onUpdate({ defaultModus: e.target.value as PipelineModus })}
-              >
-                <option value="beides">Beides (KI + Wörterbuch)</option>
-                <option value="ki">Nur KI</option>
-                <option value="woerterbuch">Nur Wörterbuch</option>
-              </select>
-            </label>
-          </fieldset>
         </div>
 
         <div className="dialog-footer">

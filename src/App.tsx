@@ -5,16 +5,13 @@ import { CorrectionList } from "./components/CorrectionList";
 import { DropZone } from "./components/DropZone";
 import { ExportButton } from "./components/ExportButton";
 import { FolderSidebar } from "./components/FolderSidebar";
-import { PipelineToggle } from "./components/PipelineToggle";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { useCorrections } from "./hooks/useCorrections";
 import { useFolderSession } from "./hooks/useFolderSession";
 import { useSettings } from "./hooks/useSettings";
-import type { PipelineModus } from "./types/corrections";
 
 function App() {
   const { settings, update: updateSettings, reset: resetSettings } = useSettings();
-  const [modus, setModus] = useState<PipelineModus>(settings.defaultModus);
   const [meldung, setMeldung] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -27,7 +24,7 @@ function App() {
     setMeldung("");
     folder.schliesseOrdner();
     try {
-      await single.analysiere(path, modus, {
+      await single.analysiere(path, {
         ollamaUrl: settings.ollamaUrl,
         ollamaModel: settings.ollamaModel,
       });
@@ -60,7 +57,6 @@ function App() {
 
   async function onSelectDatei(pfad: string) {
     await folder.waehleDatei(pfad, {
-      modus,
       ollamaUrl: settings.ollamaUrl,
       ollamaModel: settings.ollamaModel,
     });
@@ -75,7 +71,6 @@ function App() {
         <div className="app-header">
           <h1>NotaPerfecta — Zeugnisprüfung</h1>
           <div className="app-header-actions">
-            <PipelineToggle value={modus} onChange={setModus} />
             <button
               className="btn btn-outline btn-sm"
               onClick={() => setSettingsOpen(true)}
@@ -164,10 +159,9 @@ function App() {
               <span className="badge badge-muted">{single.status.abgelehnt} abgelehnt</span>
             </div>
 
-            {(single.loadingKi || single.loadingWb) && (
+            {single.loadingKi && (
               <div className="loading">
-                {single.loadingKi && <span>KI analysiert…</span>}
-                {single.loadingWb && <span>Wörterbuch prüft…</span>}
+                <span>KI analysiert…</span>
               </div>
             )}
 

@@ -11,7 +11,6 @@ export function SuggestionCard({ v, onAccept, onReject }: Props) {
     <article className={`karte ${v.status}`}>
       <div className="karte-kopf">
         <span className="badge">{v.type}</span>
-        <span className="badge badge-muted">{v.source}</span>
       </div>
       <p>
         <span className="alt">{v.original}</span> → <span className="neu">{v.correction}</span>

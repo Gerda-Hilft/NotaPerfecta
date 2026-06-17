@@ -1,13 +1,10 @@
-export type PipelineModus = "ki" | "woerterbuch" | "beides";
-
 export interface KorrekturVorschlag {
   id: string;
   original: string;
   correction: string;
-  type: "Rechtschreibung" | "Grammatik" | "Zeichensetzung";
+  type: "Rechtschreibung" | "Grammatik" | "Zeichensetzung" | "Formvorschrift";
   position: number;
   explanation: string;
-  source: "KI" | "Wörterbuch";
   status: "offen" | "angenommen" | "abgelehnt";
 }
 

@@ -1,14 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useMemo, useState } from "react";
-import type { ExportKorrektur, KorrekturVorschlag, PipelineModus } from "../types/corrections";
+import type { ExportKorrektur, KorrekturVorschlag } from "../types/corrections";
 
 type BackendSuggestion = {
   original: string;
   correction: string;
-  type: "Rechtschreibung" | "Grammatik" | "Zeichensetzung";
+  type: "Rechtschreibung" | "Grammatik" | "Zeichensetzung" | "Formvorschrift";
   position: number;
   explanation: string;
-  source: "KI" | "Wörterbuch";
 };
 
 function dedupe(suggestions: BackendSuggestion[]): KorrekturVorschlag[] {
@@ -31,7 +30,6 @@ export function useCorrections() {
   const [text, setText] = useState("");
   const [path, setPath] = useState("");
   const [loadingKi, setLoadingKi] = useState(false);
-  const [loadingWb, setLoadingWb] = useState(false);
   const [error, setError] = useState("");
   const [vorschlaege, setVorschlaege] = useState<KorrekturVorschlag[]>([]);
 
@@ -41,7 +39,7 @@ export function useCorrections() {
     return { gesamt: vorschlaege.length, angenommen, abgelehnt };
   }, [vorschlaege]);
 
-  async function analysiere(pdfPath: string, modus: PipelineModus, opts?: CorrectionOptions) {
+  async function analysiere(pdfPath: string, opts?: CorrectionOptions) {
     setError("");
     setPath(pdfPath);
     const extracted = await invoke<string>("extract_text_from_pdf", { path: pdfPath });
@@ -50,34 +48,25 @@ export function useCorrections() {
     const ollamaUrl = opts?.ollamaUrl || "http://127.0.0.1:11434";
     const modelOverride = opts?.ollamaModel || "";
 
-    const jobs: Promise<BackendSuggestion[]>[] = [];
-    if (modus !== "woerterbuch") {
-      setLoadingKi(true);
-      jobs.push(
+    setLoadingKi(true);
+    try {
+      const [aiData, formData] = await Promise.all([
         invoke<BackendSuggestion[]>("check_spelling_ai", {
           text: extracted,
           ollamaUrl,
           modelOverride,
-        })
-          .catch((e: unknown) => {
-            setError(String(e));
-            return [];
-          })
-          .finally(() => setLoadingKi(false)),
-      );
+        }).catch((e: unknown) => {
+          setError(String(e));
+          return [] as BackendSuggestion[];
+        }),
+        invoke<BackendSuggestion[]>("check_formvorschriften", {
+          path: pdfPath,
+        }).catch(() => [] as BackendSuggestion[]),
+      ]);
+      setVorschlaege(dedupe([...formData, ...aiData]));
+    } finally {
+      setLoadingKi(false);
     }
-
-    if (modus !== "ki") {
-      setLoadingWb(true);
-      jobs.push(
-        invoke<BackendSuggestion[]>("check_spelling_dictionary", { text: extracted }).finally(() =>
-          setLoadingWb(false),
-        ),
-      );
-    }
-
-    const data = (await Promise.all(jobs)).flat();
-    setVorschlaege(dedupe(data));
   }
 
   function markiere(id: string, statusWert: "angenommen" | "abgelehnt") {
@@ -102,7 +91,6 @@ export function useCorrections() {
   return {
     text,
     loadingKi,
-    loadingWb,
     error,
     vorschlaege,
     status,

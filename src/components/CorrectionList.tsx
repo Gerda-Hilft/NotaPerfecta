@@ -7,7 +7,7 @@ interface Props {
   onReject: (id: string) => void;
 }
 
-const gruppen = ["Rechtschreibung", "Grammatik", "Zeichensetzung"] as const;
+const gruppen = ["Formvorschrift", "Rechtschreibung", "Grammatik", "Zeichensetzung"] as const;
 
 export function CorrectionList({ suggestions, onAccept, onReject }: Props) {
   return (
