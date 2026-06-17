@@ -3,6 +3,7 @@ import { useState, type DragEvent } from "react";
 
 interface Props {
   onFileSelected: (path: string) => void;
+  onFolderSelected: (path: string) => void;
   onFehler: (nachricht: string) => void;
 }
 
@@ -10,7 +11,7 @@ function laeuftInTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
-export function DropZone({ onFileSelected, onFehler }: Props) {
+export function DropZone({ onFileSelected, onFolderSelected, onFehler }: Props) {
   const [dragAktiv, setDragAktiv] = useState(false);
 
   async function waehleDatei() {
@@ -28,7 +29,22 @@ export function DropZone({ onFileSelected, onFehler }: Props) {
     }
   }
 
-  function onDrop(e: DragEvent<HTMLButtonElement>) {
+  async function waehleOrdner() {
+    if (!laeuftInTauri()) {
+      onFehler("Bitte als Desktop-App mit 'pnpm tauri dev' starten.");
+      return;
+    }
+
+    const selected = await open({
+      directory: true,
+      multiple: false,
+    });
+    if (typeof selected === "string") {
+      onFolderSelected(selected);
+    }
+  }
+
+  function onDrop(e: DragEvent<HTMLDivElement>) {
     e.preventDefault();
     setDragAktiv(false);
 
@@ -47,9 +63,8 @@ export function DropZone({ onFileSelected, onFehler }: Props) {
   }
 
   return (
-    <button
+    <div
       className={`dropzone ${dragAktiv ? "drag-aktiv" : ""}`}
-      onClick={waehleDatei}
       onDragOver={(e) => {
         e.preventDefault();
         setDragAktiv(true);
@@ -57,7 +72,17 @@ export function DropZone({ onFileSelected, onFehler }: Props) {
       onDragLeave={() => setDragAktiv(false)}
       onDrop={onDrop}
     >
-      Zeugnis hier ablegen oder klicken
-    </button>
+      <div className="dropzone-content">
+        <span className="dropzone-text">Zeugnis hier ablegen oder:</span>
+        <div className="dropzone-buttons">
+          <button className="btn btn-primary btn-sm" onClick={waehleDatei}>
+            Einzelnes PDF
+          </button>
+          <button className="btn btn-outline btn-sm" onClick={waehleOrdner}>
+            Ganzer Ordner
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
