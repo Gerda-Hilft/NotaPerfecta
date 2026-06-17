@@ -18,11 +18,11 @@ export function SuggestionCard({ v, onAccept, onReject }: Props) {
       </p>
       <small>{v.explanation}</small>
       <div className="aktionen">
-        <button className="btn btn-outline btn-sm" onClick={onAccept}>
-          ✓ Annehmen
+        <button className="btn btn-accept btn-sm" onClick={onAccept}>
+          Annehmen
         </button>
-        <button className="btn btn-ghost btn-sm" onClick={onReject}>
-          ✗ Ablehnen
+        <button className="btn btn-reject btn-sm" onClick={onReject}>
+          Ablehnen
         </button>
       </div>
     </article>
