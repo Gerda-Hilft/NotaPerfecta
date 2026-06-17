@@ -226,6 +226,7 @@ h1, h2, h3, .display {
 
 /* Primary CTA: amber lacquered */
 .btn-primary {
+  --btn-depth: 6px;
   background: linear-gradient(180deg, #D4B85C, #B8952E);
   color: var(--color-bg);
   border-color: #8A7430;
@@ -241,9 +242,10 @@ h1, h2, h3, .display {
   background: linear-gradient(180deg, #DCC46A, #C9A84C);
 }
 .btn-primary:active {
+  transform: translateY(4px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 1px 0 #7A6520;
+    0 2px 0 #7A6520;
 }
 
 /* Outline/ghost: standard dark resin */

@@ -93,8 +93,6 @@
   /* -- Motion ------------------------------------------------ */
   --transition-fast: 160ms ease;
   --transition-base: 220ms ease;
-  --pointer-x: 0;
-  --pointer-y: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
