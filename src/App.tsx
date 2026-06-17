@@ -73,7 +73,7 @@ function App() {
       <Background />
       <main className="app">
         <div className="app-header">
-          <h1>NotaPerfecta</h1>
+          <h1>NotaPerfecta — Zeugnisprüfung</h1>
           <div className="app-header-actions">
             <PipelineToggle value={modus} onChange={setModus} />
             <button
