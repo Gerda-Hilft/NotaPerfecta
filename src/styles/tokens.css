@@ -1,97 +1,87 @@
-/* Design tokens — ported from the TimetableX design system
-   (fonts, colors, typography, spacing, motion). Light mode is default,
-   dark mode overrides via prefers-color-scheme. */
-
-@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&display=swap');
+/* src/styles/tokens.css — Skeuomorphic dark-mode design tokens */
+@import "./fonts.css";
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 
-  /* ── Fonts ──────────────────────────────────────── */
-  --font-sans: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-display: 'Fraunces', ui-serif, Georgia, Cambria, 'Times New Roman', serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* -- Fonts ------------------------------------------------- */
+  --font-sans: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Playfair Display', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-mono: 'Special Elite', 'Courier Prime', ui-monospace, Menlo, monospace;
 
-  /* ── Brand ──────────────────────────────────────── */
-  --color-primary:        #7AA2F7;
-  --color-primary-hover:  #6A92E7;
-  --color-primary-light:  #E6ECFF;
-  --color-primary-border: #C5D2FF;
-  --color-accent:         #BB9AF7;
-  --color-accent-soft:    #EEE6FF;
+  /* -- Palette ----------------------------------------------- */
+  --color-bg:              #1A1612;
+  --color-surface:         #2A2420;
+  --color-surface-raised:  #342E29;
+  --color-surface-inset:   #1E1A15;
+  --color-border:          #4A4035;
+  --color-border-subtle:   #3A3228;
 
-  /* ── Surfaces ───────────────────────────────────── */
-  --color-bg:             #F4F6FB;
-  --color-surface:        #FFFFFF;
-  --color-surface-raised: #F8FAFF;
-  --color-border:         #DDE3F2;
-  --color-border-subtle:  #E8EDF7;
+  --color-text:            #EDE8DF;
+  --color-text-secondary:  #B8B0A4;
+  --color-text-muted:      #8C8278;
 
-  /* ── Text ───────────────────────────────────────── */
-  --color-text:           #1F2335;
-  --color-text-secondary: #4C5673;
-  --color-text-muted:     #7A86A6;
+  --color-primary:         #C9A84C;
+  --color-primary-hover:   #D4B85C;
+  --color-primary-light:   rgba(201, 168, 76, 0.12);
+  --color-primary-border:  #8A7430;
+  --color-accent:          #C9A84C;
+  --color-accent-soft:     rgba(201, 168, 76, 0.08);
 
-  /* ── Status ─────────────────────────────────────── */
-  --color-danger:         #F7768E;
-  --color-danger-bg:      #FDECEF;
-  --color-danger-border:  #F8C8D1;
-  --color-warning:        #E0AF68;
-  --color-warning-bg:     #FFF4E3;
-  --color-warning-border: #F4D6A8;
-  --color-success:        #9ECE6A;
-  --color-success-bg:     rgba(158, 206, 106, 0.15);
+  --color-danger:          #C0392B;
+  --color-danger-bg:       rgba(192, 57, 43, 0.12);
+  --color-danger-border:   rgba(192, 57, 43, 0.25);
+  --color-warning:         #D4A84C;
+  --color-warning-bg:      rgba(212, 168, 76, 0.12);
+  --color-warning-border:  rgba(212, 168, 76, 0.25);
+  --color-success:         #27AE60;
+  --color-success-bg:      rgba(39, 174, 96, 0.10);
 
-  /* ── Background orbs ───────────────────────────── */
-  --bg-orb-1: #D9E7F5;
-  --bg-orb-2: #EDE2FF;
-  --bg-orb-3: #E2F2E5;
+  /* -- Typography scale -------------------------------------- */
+  --text-xs:    0.75rem;
+  --text-sm:    0.875rem;
+  --text-base:  1rem;
+  --text-lg:    1.125rem;
+  --text-xl:    1.25rem;
+  --text-2xl:   1.5rem;
+  --text-3xl:   1.875rem;
 
-  /* ── Typography scale ───────────────────────────── */
-  --text-xs:   0.75rem;
-  --text-sm:   0.875rem;
-  --text-base: 1rem;
-  --text-lg:   1.125rem;
-  --text-xl:   1.25rem;
-  --text-2xl:  1.5rem;
-  --text-3xl:  1.875rem;
+  --leading-tight:    1.25;
+  --leading-normal:   1.5;
+  --leading-relaxed:  1.7;
 
-  --leading-tight:   1.25;
-  --leading-normal:  1.5;
-  --leading-relaxed: 1.7;
+  --font-normal:    400;
+  --font-medium:    500;
+  --font-semibold:  600;
+  --font-bold:      700;
 
-  --font-normal:   400;
-  --font-medium:   500;
-  --font-semibold: 600;
-  --font-bold:     700;
+  --tracking-tight:   -0.01em;
+  --tracking-wide:     0.05em;
+  --tracking-widest:   0.16em;
 
-  --tracking-tight:  -0.01em;
-  --tracking-wide:    0.05em;
-  --tracking-widest:  0.16em;
+  --body-size:         17px;
+  --body-line-height:  1.7;
 
-  --body-size:        17px;
-  --body-line-height: 1.7;
+  /* -- Radii (machined edges, 6-12px) ----------------------- */
+  --radius-sm:    6px;
+  --radius-md:    8px;
+  --radius-lg:    10px;
+  --radius-xl:    12px;
+  --radius-2xl:   12px;
+  --radius-full:  9999px;
 
-  /* ── Radius ─────────────────────────────────────── */
-  --radius-sm:   10px;
-  --radius-md:   14px;
-  --radius-lg:   18px;
-  --radius-xl:   24px;
-  --radius-2xl:  28px;
-  --radius-full: 9999px;
+  /* -- Shadows (warm-tinted, never cold grey) ---------------- */
+  --shadow-sm:  0 2px 4px rgba(20, 14, 10, 0.5);
+  --shadow-md:  0 6px 16px rgba(20, 14, 10, 0.6);
+  --shadow-lg:  0 12px 32px rgba(20, 14, 10, 0.7);
 
-  /* ── Shadows ────────────────────────────────────── */
-  --shadow-sm: 0 1px 2px 0 rgb(20 14 10 / 0.06), 0 1px 3px 0 rgb(20 14 10 / 0.08);
-  --shadow-md: 0 10px 30px -18px rgb(20 14 10 / 0.35);
-  --shadow-lg: 0 20px 50px -24px rgb(20 14 10 / 0.35);
+  /* -- 3D button system (dark resin) ------------------------- */
+  --btn-3d-top:     #3E3630;
+  --btn-3d-bottom:  #2A2420;
+  --btn-3d-border:  #4A4035;
+  --btn-3d-shadow:  #1A1612;
 
-  /* ── 3D button system ───────────────────────────── */
-  --btn-3d-top:    var(--color-primary-light);
-  --btn-3d-bottom: color-mix(in srgb, var(--color-primary-light) 70%, #000 30%);
-  --btn-3d-border: var(--color-primary-border);
-  --btn-3d-shadow: color-mix(in srgb, var(--color-primary) 55%, #000 45%);
-
-  /* ── Spacing ────────────────────────────────────── */
+  /* -- Spacing ----------------------------------------------- */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -100,63 +90,11 @@
   --space-6: 1.5rem;
   --space-8: 2rem;
 
-  /* ── Motion ─────────────────────────────────────── */
+  /* -- Motion ------------------------------------------------ */
   --transition-fast: 160ms ease;
   --transition-base: 220ms ease;
   --pointer-x: 0;
   --pointer-y: 0;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-
-    --color-primary:        #7AA2F7;
-    --color-primary-hover:  #6A92E7;
-    --color-primary-light:  #1A1B26;
-    --color-primary-border: #33467C;
-    --color-accent:         #BB9AF7;
-    --color-accent-soft:    #2A2140;
-
-    --color-bg:             #1A1B26;
-    --color-surface:        #1F2335;
-    --color-surface-raised: #24283B;
-    --color-border:         #2C3043;
-    --color-border-subtle:  #24283B;
-
-    --color-text:           #C0CAF5;
-    --color-text-secondary: #A9B1D6;
-    --color-text-muted:     #7A86A6;
-
-    --color-danger:         #F7768E;
-    --color-danger-bg:      #2B1F29;
-    --color-danger-border:  #5C3140;
-    --color-warning:        #E0AF68;
-    --color-warning-bg:     #2D241B;
-    --color-warning-border: #5A4525;
-    --color-success:        #9ECE6A;
-    --color-success-bg:     rgba(158, 206, 106, 0.12);
-
-    --bg-orb-1: #2A2E45;
-    --bg-orb-2: #2F2744;
-    --bg-orb-3: #233142;
-
-    --shadow-sm: 0 2px 6px 0 rgb(0 0 0 / 0.4);
-    --shadow-md: 0 12px 36px -20px rgb(0 0 0 / 0.6);
-    --shadow-lg: 0 24px 60px -30px rgb(0 0 0 / 0.7);
-  }
-}
-
-/* ── Keyframes ──────────────────────────────────── */
-
-@keyframes drift {
-  0%   { transform: translate3d(calc(var(--pointer-x) *  0.5px), calc(var(--pointer-y) *  0.5px), 0) scale(1);    }
-  50%  { transform: translate3d(calc(var(--pointer-x) * -0.4px), calc(var(--pointer-y) *  0.6px), 0) scale(1.05); }
-  100% { transform: translate3d(calc(var(--pointer-x) *  0.5px), calc(var(--pointer-y) *  0.5px), 0) scale(1);    }
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
