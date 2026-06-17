@@ -94,6 +94,7 @@ export function findHighlights(
   for (const s of suggestions) {
     if (s.status === "abgelehnt") continue;
     if (s.original === "(fehlt)") continue;
+    if (!s.original) continue;
 
     for (const geo of geometries) {
       const { fullText, items } = geo.layout;

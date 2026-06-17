@@ -19,6 +19,7 @@ interface Props {
 export function PdfViewer({ pdfPath, suggestions }: Props) {
   const [geometries, setGeometries] = useState<PageGeometry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,6 +30,7 @@ export function PdfViewer({ pdfPath, suggestions }: Props) {
     }
 
     let cancelled = false;
+    setLoadError(null);
     setLoading(true);
     setGeometries([]);
     container.innerHTML = "";
@@ -68,8 +70,11 @@ export function PdfViewer({ pdfPath, suggestions }: Props) {
           setGeometries(newGeometries);
           setLoading(false);
         }
-      } catch {
-        if (!cancelled) setLoading(false);
+      } catch (e) {
+        if (!cancelled) {
+          setLoading(false);
+          setLoadError("PDF konnte nicht geladen werden.");
+        }
       }
     })();
 
@@ -92,6 +97,11 @@ export function PdfViewer({ pdfPath, suggestions }: Props) {
         <div className="pdf-loading">
           <span>PDF wird geladen…</span>
         </div>
+      )}
+      {loadError && (
+        <p style={{ color: "var(--color-error, #ef4444)", padding: "1rem" }}>
+          {loadError}
+        </p>
       )}
       <div style={{ position: "relative", width: containerWidth || "auto" }}>
         <div ref={canvasContainerRef} />
