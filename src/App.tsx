@@ -9,6 +9,7 @@ import { SettingsDialog } from "./components/SettingsDialog";
 import { useCorrections } from "./hooks/useCorrections";
 import { useFolderSession } from "./hooks/useFolderSession";
 import { useSettings } from "./hooks/useSettings";
+import { PdfViewer } from "./components/PdfViewer";
 
 function App() {
   const { settings, update: updateSettings, reset: resetSettings } = useSettings();
@@ -116,7 +117,7 @@ function App() {
                 <>
                   <article className="panel folder-panel">
                     <h2>Originaltext — {current.filename}</h2>
-                    <pre>{current.text || "Kein Text extrahiert."}</pre>
+                    <PdfViewer pdfPath={current.path} suggestions={current.vorschlaege} />
                   </article>
                   <article className="panel folder-panel">
                     <h2>
@@ -168,7 +169,13 @@ function App() {
             <section className="split">
               <article className="panel">
                 <h2>Originaltext</h2>
-                <pre>{single.text || "Noch kein Zeugnis geladen."}</pre>
+                {single.path ? (
+                  <PdfViewer pdfPath={single.path} suggestions={single.vorschlaege} />
+                ) : (
+                  <p style={{ color: "var(--color-muted, #888)", padding: "1rem" }}>
+                    Noch kein Zeugnis geladen.
+                  </p>
+                )}
               </article>
               <article className="panel">
                 <h2>Korrekturen</h2>
