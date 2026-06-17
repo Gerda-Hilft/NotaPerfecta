@@ -36,6 +36,7 @@
   --color-warning-border:  rgba(212, 168, 76, 0.25);
   --color-success:         #27AE60;
   --color-success-bg:      rgba(39, 174, 96, 0.10);
+  --color-paper:           #fff;
 
   /* -- Typography scale -------------------------------------- */
   --text-xs:    0.75rem;

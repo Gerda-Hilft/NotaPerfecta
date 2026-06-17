@@ -64,6 +64,11 @@ describe("findHighlights", () => {
     expect(result[0].y).toBe(120);
   });
 
+  it("skips empty original string", () => {
+    const result = findHighlights([geo], [s({ id: "g", original: "" })]);
+    expect(result).toHaveLength(0);
+  });
+
   it("returns multiple rects when original appears more than once", () => {
     const repeated: PageGeometry = {
       topOffset: 0,
