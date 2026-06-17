@@ -34,38 +34,42 @@ export function PdfViewer({ pdfPath, suggestions }: Props) {
     container.innerHTML = "";
 
     (async () => {
-      const pdf = await pdfjsLib.getDocument({ url: convertFileSrc(pdfPath) }).promise;
-      const newGeometries: PageGeometry[] = [];
-      let topOffset = 0;
+      try {
+        const pdf = await pdfjsLib.getDocument({ url: convertFileSrc(pdfPath) }).promise;
+        const newGeometries: PageGeometry[] = [];
+        let topOffset = 0;
 
-      for (let i = 1; i <= pdf.numPages; i++) {
-        if (cancelled) return;
+        for (let i = 1; i <= pdf.numPages; i++) {
+          if (cancelled) return;
 
-        const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: SCALE });
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: SCALE });
 
-        const canvas = document.createElement("canvas");
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        canvas.style.display = "block";
-        container.appendChild(canvas);
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          canvas.style.display = "block";
+          container.appendChild(canvas);
 
-        const ctx = canvas.getContext("2d")!;
-        await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+          const ctx = canvas.getContext("2d")!;
+          await page.render({ canvas, canvasContext: ctx, viewport }).promise;
 
-        const layout = await buildPageLayout(page, SCALE);
-        newGeometries.push({
-          topOffset,
-          width: viewport.width,
-          height: viewport.height,
-          layout,
-        });
-        topOffset += viewport.height + PAGE_GAP;
-      }
+          const layout = await buildPageLayout(page, SCALE);
+          newGeometries.push({
+            topOffset,
+            width: viewport.width,
+            height: viewport.height,
+            layout,
+          });
+          topOffset += viewport.height + PAGE_GAP;
+        }
 
-      if (!cancelled) {
-        setGeometries(newGeometries);
-        setLoading(false);
+        if (!cancelled) {
+          setGeometries(newGeometries);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) setLoading(false);
       }
     })();
 
@@ -78,7 +82,7 @@ export function PdfViewer({ pdfPath, suggestions }: Props) {
   const highlights = findHighlights(geometries, suggestions);
   const containerWidth = geometries[0]?.width ?? 0;
   const containerHeight = geometries.reduce(
-    (sum, g) => sum + g.height + PAGE_GAP,
+    (sum, g, i) => sum + g.height + (i < geometries.length - 1 ? PAGE_GAP : 0),
     0
   );
 
@@ -106,10 +110,10 @@ export function PdfViewer({ pdfPath, suggestions }: Props) {
             {highlights.map((rect, i) => {
               const s = suggestions.find((s) => s.id === rect.suggestionId)!;
               return s.status === "angenommen" ? (
-                <AcceptedHighlight key={i} rect={rect} correction={s.correction} />
+                <AcceptedHighlight key={`${rect.suggestionId}-${i}`} rect={rect} correction={s.correction} />
               ) : (
                 <div
-                  key={i}
+                  key={`${rect.suggestionId}-${i}`}
                   className="highlight-open"
                   style={{
                     position: "absolute",

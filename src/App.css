@@ -70,6 +70,14 @@ h1, h2, h3, .display {
   mix-blend-mode: soft-light;
 }
 
+.bg-screw {
+  position: fixed;
+  z-index: 2;
+}
+.bg-screw-tl { top: 10px; left: 10px; }
+.bg-screw-tr { top: 10px; right: 10px; }
+.bg-screw-bl { bottom: 10px; left: 10px; }
+.bg-screw-br { bottom: 10px; right: 10px; }
 
 /* ── App shell & layout ───────────────────────────── */
 .app-shell {
@@ -409,6 +417,25 @@ h1, h2, h3, .display {
   border-radius: var(--radius-lg);
 }
 
+/* Corrections pane clipboard: riveted top edge */
+.split > .panel:last-child {
+  position: relative;
+}
+.split > .panel:last-child::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background: linear-gradient(180deg, #4A4035, #342E29);
+  background-image:
+    radial-gradient(circle at 20%, #6B5E50 3px, transparent 3px),
+    radial-gradient(circle at 80%, #6B5E50 3px, transparent 3px);
+  background-size: 100% 6px;
+  background-repeat: no-repeat;
+}
 
 /* ── Original text: aged paper inset ────────────── */
 pre {
