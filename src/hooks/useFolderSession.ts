@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useState, useCallback } from "react";
-import type { ExportKorrektur, KorrekturVorschlag } from "../types/corrections";
+import type { ExportKorrektur, ExportResult, KorrekturVorschlag } from "../types/corrections";
 
 type BackendSuggestion = {
   original: string;
@@ -150,6 +150,7 @@ export function useFolderSession() {
     let korrigiert = 0;
     let kopiert = 0;
     let errors = 0;
+    let nichtGefunden = 0;
 
     for (const datei of dateien) {
       const accepted: ExportKorrektur[] =
@@ -161,12 +162,17 @@ export function useFolderSession() {
 
       try {
         if (accepted.length > 0) {
-          await invoke<string>("export_corrected_pdf", {
+          const result = await invoke<ExportResult>("export_corrected_pdf", {
             originalPath: datei.path,
             acceptedCorrections: accepted,
             outputDir,
           });
-          korrigiert++;
+          if (result.applied > 0) {
+            korrigiert++;
+          } else {
+            kopiert++;
+          }
+          nichtGefunden += result.requested - result.applied;
         } else {
           await invoke<string>("copy_file", {
             source: datei.path,
@@ -184,6 +190,7 @@ export function useFolderSession() {
     if (korrigiert > 0) parts.push(`${korrigiert} korrigiert`);
     if (kopiert > 0) parts.push(`${kopiert} unverändert`);
     if (errors > 0) parts.push(`${errors} fehlgeschlagen`);
+    if (nichtGefunden > 0) parts.push(`${nichtGefunden} Korrekturen nicht gefunden`);
     setExportStatus(`${total} Dateien → korrekturen/ (${parts.join(", ")})`);
   }
 

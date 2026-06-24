@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import { Background } from "./components/Background";
 import { CorrectionList } from "./components/CorrectionList";
@@ -8,6 +8,7 @@ import { FolderSidebar } from "./components/FolderSidebar";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { useCorrections } from "./hooks/useCorrections";
 import { useFolderSession } from "./hooks/useFolderSession";
+import { useNotifications } from "./hooks/useNotifications";
 import { useSettings } from "./hooks/useSettings";
 import { PdfViewer } from "./components/PdfViewer";
 
@@ -17,16 +18,21 @@ function App() {
     update: updateSettings,
     reset: resetSettings,
   } = useSettings();
-  const [meldung, setMeldung] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const { notify } = useNotifications();
 
   const single = useCorrections();
   const folder = useFolderSession();
 
   const inFolderMode = folder.ordner !== null;
 
+  useEffect(() => {
+    if (single.error) {
+      notify({ title: "Ollama request failed", message: single.error, type: "error" });
+    }
+  }, [single.error, notify]);
+
   async function onFile(path: string) {
-    setMeldung("");
     folder.schliesseOrdner();
     try {
       await single.analysiere(path, {
@@ -34,29 +40,50 @@ function App() {
         ollamaModel: settings.ollamaModel,
       });
     } catch (e) {
-      setMeldung(`Fehler beim Verarbeiten: ${String(e)}`);
+      notify({ title: "Fehler beim Verarbeiten", message: String(e), type: "error" });
     }
   }
 
   async function onFolder(path: string) {
-    setMeldung("");
     try {
       await folder.oeffneOrdner(path);
     } catch (e) {
-      setMeldung(String(e));
+      notify({ title: "Ordner öffnen fehlgeschlagen", message: String(e), type: "error" });
     }
   }
 
   function onFehler(nachricht: string) {
-    setMeldung(nachricht);
+    notify({ title: "Fehler", message: nachricht, type: "error" });
   }
 
   async function onExportSingle() {
+    const accepted = single.vorschlaege.filter(
+      (v) => v.status === "angenommen",
+    );
+    if (accepted.length === 0) {
+      notify({ title: "Alles gut", message: "Keine Fehler gefunden.", type: "success" });
+      return;
+    }
     try {
-      const out = await single.exportiere();
-      setMeldung(`Export abgeschlossen: ${out}`);
+      const result = await single.exportiere();
+      if (result.applied === 0) {
+        notify({
+          title: "Export",
+          message: `${result.requested} Korrekturen konnten im PDF nicht gefunden werden.`,
+          type: "warning",
+        });
+      } else if (result.applied < result.requested) {
+        const missed = result.requested - result.applied;
+        notify({
+          title: "Export abgeschlossen",
+          message: `${result.path} (${result.applied} angewendet, ${missed} nicht gefunden)`,
+          type: "warning",
+        });
+      } else {
+        notify({ title: "Export abgeschlossen", message: result.path, type: "success" });
+      }
     } catch (e) {
-      setMeldung(`Export fehlgeschlagen: ${String(e)}`);
+      notify({ title: "Export fehlgeschlagen", message: String(e), type: "error" });
     }
   }
 
@@ -91,10 +118,6 @@ function App() {
             onFolderSelected={onFolder}
             onFehler={onFehler}
           />
-        )}
-
-        {(single.error || meldung) && (
-          <p className="meldung">{single.error || meldung}</p>
         )}
 
         {inFolderMode ? (
@@ -219,29 +242,37 @@ function App() {
               </article>
               <article className="panel">
                 <h2>Korrekturen</h2>
-                <div className="toolbar">
-                  <button
-                    className="btn btn-outline btn-sm"
-                    onClick={() => single.bulk("angenommen")}
-                  >
-                    Alle annehmen
-                  </button>
-                  <button
-                    className="btn btn-outline btn-sm"
-                    onClick={() => single.bulk("abgelehnt")}
-                  >
-                    Alle ablehnen
-                  </button>
-                  <ExportButton
-                    disabled={!single.vorschlaege.length}
-                    onExport={onExportSingle}
-                  />
-                </div>
-                <CorrectionList
-                  suggestions={single.vorschlaege}
-                  onAccept={(id) => single.markiere(id, "angenommen")}
-                  onReject={(id) => single.markiere(id, "abgelehnt")}
-                />
+                {single.path && !single.loadingKi && single.vorschlaege.length === 0 ? (
+                  <p style={{ color: "var(--color-success)" }}>
+                    Alles gut, keine Fehler gefunden.
+                  </p>
+                ) : (
+                  <>
+                    <div className="toolbar">
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => single.bulk("angenommen")}
+                      >
+                        Alle annehmen
+                      </button>
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => single.bulk("abgelehnt")}
+                      >
+                        Alle ablehnen
+                      </button>
+                      <ExportButton
+                        disabled={!single.vorschlaege.length}
+                        onExport={onExportSingle}
+                      />
+                    </div>
+                    <CorrectionList
+                      suggestions={single.vorschlaege}
+                      onAccept={(id) => single.markiere(id, "angenommen")}
+                      onReject={(id) => single.markiere(id, "abgelehnt")}
+                    />
+                  </>
+                )}
               </article>
             </section>
           </>

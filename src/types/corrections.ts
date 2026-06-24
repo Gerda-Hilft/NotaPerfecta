@@ -13,3 +13,9 @@ export interface ExportKorrektur {
   correction: string;
   position: number;
 }
+
+export interface ExportResult {
+  path: string;
+  applied: number;
+  requested: number;
+}

@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useMemo, useState } from "react";
-import type { ExportKorrektur, KorrekturVorschlag } from "../types/corrections";
+import type { ExportKorrektur, ExportResult, KorrekturVorschlag } from "../types/corrections";
 
 type BackendSuggestion = {
   original: string;
@@ -79,7 +79,7 @@ export function useCorrections() {
       .filter((v) => v.status === "angenommen")
       .map(({ original, correction, position }) => ({ original, correction, position }));
 
-    return invoke<string>("export_corrected_pdf", {
+    return invoke<ExportResult>("export_corrected_pdf", {
       originalPath: path,
       acceptedCorrections: accepted,
     });
