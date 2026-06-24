@@ -1,16 +1,6 @@
 use super::pdf;
+use super::zeugnis::{self, Zeugnis};
 use crate::models::AiSuggestion;
-use regex::Regex;
-
-struct ZeugnisInfo {
-    is_halbjahreszeugnis: bool,
-    klassenstufe: u8,
-    klasse_nummer: Option<u8>,
-    vorname: String,
-    kopfnoten: Vec<(String, String)>,
-    fachnoten: Vec<String>,
-    bemerkungen: String,
-}
 
 fn has_tendenz(note: &str) -> bool {
     let b = note.trim().as_bytes();
@@ -35,110 +25,15 @@ fn grade_value(note: &str) -> Option<f32> {
     }
 }
 
-fn parse(text: &str) -> Option<ZeugnisInfo> {
-    let is_halbjahreszeugnis = text.contains("Halbjahreszeugnis")
-        || (text.contains("Jahreszeugnis") && !text.contains("Halbjahresinformation"));
-
-    let klasse_re = Regex::new(r"Klasse:\s+(\d+)(?:/(\d+))?").ok()?;
-    let caps = klasse_re.captures(text)?;
-    let klassenstufe: u8 = caps.get(1)?.as_str().parse().ok()?;
-    let klasse_nummer: Option<u8> = caps.get(2).and_then(|m| m.as_str().parse().ok());
-
-    let vorname = Regex::new(r"(?m)Vorname und Name:\s+(\S+)")
-        .ok()?
-        .captures(text)
-        .and_then(|c| c.get(1))
-        .map(|m| m.as_str().to_string())
-        .unwrap_or_default();
-
-    let kopfnoten = parse_kopfnoten(text);
-    let fachnoten = parse_fachnoten(text);
-    let bemerkungen = parse_bemerkungen(text);
-
-    Some(ZeugnisInfo {
-        is_halbjahreszeugnis,
-        klassenstufe,
-        klasse_nummer,
-        vorname,
-        kopfnoten,
-        fachnoten,
-        bemerkungen,
-    })
-}
-
-fn parse_kopfnoten(text: &str) -> Vec<(String, String)> {
-    let mut noten = Vec::new();
-
-    for line in text.lines() {
-        if line.contains("Betragen") && line.contains("Mitarbeit") {
-            let re = Regex::new(r"Betragen\s{3,}(\S+).*Mitarbeit\s{3,}(\S+)").unwrap();
-            if let Some(caps) = re.captures(line) {
-                noten.push(("Betragen".into(), caps[1].to_string()));
-                noten.push(("Mitarbeit".into(), caps[2].to_string()));
-            }
-        }
-        if line.contains("Fleiß") && line.contains("Ordnung") {
-            let re = Regex::new(r"Fleiß\s{3,}(\S+).*Ordnung\s{3,}(\S+)").unwrap();
-            if let Some(caps) = re.captures(line) {
-                noten.push(("Fleiß".into(), caps[1].to_string()));
-                noten.push(("Ordnung".into(), caps[2].to_string()));
-            }
-        }
-    }
-
-    noten
-}
-
-fn parse_fachnoten(text: &str) -> Vec<String> {
-    let start = match text.find("Leistungen in den einzelnen Fächern:") {
-        Some(s) => s,
-        None => return vec![],
-    };
-    let end = text.find("Bemerkungen:").unwrap_or(text.len());
-    if start >= end {
-        return vec![];
-    }
-
-    let section = &text[start..end];
-    let re = Regex::new(r"\s{2,}(\d[+-]?)(?:\s|$)").unwrap();
-
-    re.captures_iter(section)
-        .filter_map(|c| {
-            let g = c.get(1)?.as_str();
-            let digit = g.as_bytes()[0].wrapping_sub(b'0');
-            if (1..=6).contains(&digit) {
-                Some(g.to_string())
-            } else {
-                None
-            }
-        })
-        .collect()
-}
-
-fn parse_bemerkungen(text: &str) -> String {
-    let start = match text.find("Bemerkungen:") {
-        Some(s) => s + "Bemerkungen:".len(),
-        None => return String::new(),
-    };
-    let end = text.find("Datum:").unwrap_or(text.len());
-    if start < end {
-        text[start..end].trim().to_string()
-    } else {
-        String::new()
-    }
-}
-
-fn expected_bemerkungen(info: &ZeugnisInfo) -> Vec<&'static str> {
-    match info.klassenstufe {
+fn expected_bemerkungen(z: &Zeugnis) -> Vec<&'static str> {
+    match z.klassenstufe() {
         5 => vec![
             "Lernen lernen: erteilt",
             "individuelle Förderung Urban Dance und Informatik: erteilt",
         ],
-        6 => vec![
-            "individuelle Förderung 2. Fremdsprache und Informatik: erteilt",
-        ],
+        6 => vec!["individuelle Förderung 2. Fremdsprache und Informatik: erteilt"],
         7 => vec!["individuelle Förderung Informatik: erteilt"],
-        8 => match info.klasse_nummer {
+        8 => match z.klasse_nummer() {
             Some(1..=2) => vec!["individuelle Förderung Informatik: erteilt"],
             Some(3..=6) => vec!["individuelle Förderung Deutsch: erteilt"],
             _ => vec![],
@@ -150,16 +45,31 @@ fn expected_bemerkungen(info: &ZeugnisInfo) -> Vec<&'static str> {
 
 pub fn check(path: &str) -> Result<Vec<AiSuggestion>, String> {
     let text = pdf::extract_text_layout(path)?;
-    let info = match parse(&text) {
-        Some(i) => i,
-        None => return Ok(vec![]),
-    };
 
     let mut results: Vec<AiSuggestion> = Vec::new();
     let mut pos = 0usize;
 
+    // 0: Beschädigter Formulartext (z. B. "Wahlpf ichtbereich" statt
+    //    "Wahlpflichtbereich"). Läuft unabhängig vom Parsen, damit eine
+    //    Beschädigung auch dann gemeldet wird, wenn sie das Parsen stört.
+    for (original, correction) in zeugnis::find_form_corruptions(&text) {
+        results.push(AiSuggestion {
+            original,
+            correction,
+            kind: "Rechtschreibung".into(),
+            position: pos,
+            explanation: "Fester Formulartext ist beschädigt (vermutlich Export-Artefakt) und sollte exakt der amtlichen Vorlage entsprechen.".into(),
+        });
+        pos += 1;
+    }
+
+    let z = match Zeugnis::parse(&text) {
+        Some(z) => z,
+        None => return Ok(results),
+    };
+
     // 1: Kopfnoten mit Tendenz
-    for (name, note) in &info.kopfnoten {
+    for (name, note) in &z.kopfnoten {
         if has_tendenz(note) {
             let digit = note.chars().next().unwrap();
             results.push(AiSuggestion {
@@ -174,8 +84,8 @@ pub fn check(path: &str) -> Result<Vec<AiSuggestion>, String> {
     }
 
     // 2: Kl. 10 Fachnoten mit Tendenz
-    if info.is_halbjahreszeugnis {
-        for note in &info.fachnoten {
+    if z.is_halbjahreszeugnis() {
+        for note in &z.fachnoten() {
             if has_tendenz(note) {
                 let digit = note.chars().next().unwrap();
                 results.push(AiSuggestion {
@@ -191,21 +101,21 @@ pub fn check(path: &str) -> Result<Vec<AiSuggestion>, String> {
     }
 
     // 3: Versetzungsgefährdung
-    let threshold: f32 = if info.is_halbjahreszeugnis { 5.0 } else { 4.33 };
-    let has_bad_grade = info
-        .fachnoten
+    let threshold: f32 = if z.is_halbjahreszeugnis() { 5.0 } else { 4.33 };
+    let has_bad_grade = z
+        .fachnoten()
         .iter()
         .any(|n| grade_value(n).is_some_and(|v| v >= threshold));
 
-    let bm = info.bemerkungen.to_lowercase();
+    let bm = z.bemerkungen_text().to_lowercase();
     let has_vermerk =
         (bm.contains("versetzung") && bm.contains("gefährdet")) || bm.contains("versetzungsgefährdet");
 
     if has_bad_grade && !has_vermerk {
-        let schwelle = if info.is_halbjahreszeugnis { "5" } else { "4-" };
+        let schwelle = if z.is_halbjahreszeugnis() { "5" } else { "4-" };
         results.push(AiSuggestion {
             original: "(fehlt)".into(),
-            correction: format!("{} ist versetzungsgefährdet.", info.vorname),
+            correction: format!("{} ist versetzungsgefährdet.", z.vorname()),
             kind: "Formvorschrift".into(),
             position: pos,
             explanation: format!(
@@ -216,8 +126,9 @@ pub fn check(path: &str) -> Result<Vec<AiSuggestion>, String> {
     }
 
     // 4: Standard-Bemerkungen
-    for expected in expected_bemerkungen(&info) {
-        if !info.bemerkungen.contains(expected) {
+    let bemerkungen_text = z.bemerkungen_text();
+    for expected in expected_bemerkungen(&z) {
+        if !bemerkungen_text.contains(expected) {
             results.push(AiSuggestion {
                 original: "(fehlt)".into(),
                 correction: expected.to_string(),
@@ -225,7 +136,7 @@ pub fn check(path: &str) -> Result<Vec<AiSuggestion>, String> {
                 position: pos,
                 explanation: format!(
                     "Standard-Bemerkung für Klassenstufe {} der Gerda-Taro-Schule fehlt.",
-                    info.klassenstufe
+                    z.klassenstufe()
                 ),
             });
             pos += 1;
@@ -273,38 +184,5 @@ mod tests {
         assert!(grade_value("5").unwrap() >= threshold);
         assert!(grade_value("6").unwrap() >= threshold);
         assert!(grade_value("4").unwrap() < threshold);
-    }
-
-    #[test]
-    fn parses_kopfnoten_from_layout() {
-        let text = "Betragen                    3               Mitarbeit                     4\n\
-                     Fleiß                       4               Ordnung                       4";
-        let noten = parse_kopfnoten(text);
-        assert_eq!(noten.len(), 4);
-        assert_eq!(noten[0], ("Betragen".into(), "3".into()));
-        assert_eq!(noten[1], ("Mitarbeit".into(), "4".into()));
-    }
-
-    #[test]
-    fn parses_fachnoten_from_layout() {
-        let text = "Leistungen in den einzelnen Fächern:\n\
-                     Deutsch                    4-               Mathematik                    4\n\
-                     Englisch                   4                Biologie                     4+\n\
-                     2. Fremdsprache (ab Klassenstufe 6)\n\
-                     Bemerkungen:";
-        let noten = parse_fachnoten(text);
-        assert_eq!(noten, vec!["4-", "4", "4", "4+"]);
-    }
-
-    #[test]
-    fn parses_bemerkungen() {
-        let text = "Bemerkungen:   Fehltage entschuldigt: 3   unentschuldigt: 0\n\
-                     Jonathans Versetzung ist gefährdet.\n\
-                     Zusatzstunde Informatik: erteilt\n\n\
-                     Datum:   6. Februar 2026";
-        let bem = parse_bemerkungen(text);
-        assert!(bem.contains("Versetzung"));
-        assert!(bem.contains("Zusatzstunde"));
-        assert!(!bem.contains("Datum"));
     }
 }

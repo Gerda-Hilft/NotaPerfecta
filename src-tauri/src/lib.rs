@@ -6,6 +6,11 @@ use models::{AiSuggestion, Correction};
 use std::path::Path;
 
 #[tauri::command]
+fn read_pdf_bytes(path: String) -> Result<Vec<u8>, String> {
+    std::fs::read(&path).map_err(|e| format!("Datei konnte nicht gelesen werden: {e}"))
+}
+
+#[tauri::command]
 async fn extract_text_from_pdf(path: String) -> Result<String, String> {
     pdf::extract_text_from_pdf(path).await
 }
@@ -17,11 +22,11 @@ fn check_formvorschriften(path: String) -> Result<Vec<AiSuggestion>, String> {
 
 #[tauri::command]
 async fn check_spelling_ai(
-    text: String,
+    path: String,
     ollama_url: String,
     model_override: String,
 ) -> Result<Vec<AiSuggestion>, String> {
-    ollama::check_spelling_ai(text, ollama_url, model_override).await
+    ollama::check_spelling_ai(path, ollama_url, model_override).await
 }
 
 #[tauri::command]
@@ -80,6 +85,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
+            read_pdf_bytes,
             extract_text_from_pdf,
             check_formvorschriften,
             check_spelling_ai,

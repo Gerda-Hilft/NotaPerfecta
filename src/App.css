@@ -89,9 +89,8 @@ h1, h2, h3, .display {
 .app {
   position: relative;
   z-index: 1;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--space-6) var(--space-4) var(--space-8);
+  width: 100%;
+  padding: var(--space-6) var(--space-6) var(--space-8);
   box-shadow: inset 0 1px 3px rgba(20, 14, 10, 0.3);
 }
 
@@ -151,13 +150,20 @@ h1, h2, h3, .display {
     0 var(--btn-depth) 0 var(--btn-3d-shadow),
     0 8px 16px -8px rgba(20, 14, 10, 0.4);
   transition:
-    transform    100ms ease,
-    box-shadow   100ms ease,
+    transform    140ms var(--ease-spring),
+    box-shadow   140ms var(--ease-spring),
     background   var(--transition-fast),
     color        var(--transition-fast),
     border-color var(--transition-fast);
 }
-.btn:active {
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 calc(var(--btn-depth) + 1px) 0 var(--btn-3d-shadow),
+    0 12px 22px -10px rgba(20, 14, 10, 0.5);
+}
+.btn:active:not(:disabled) {
   transform: translateY(3px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
@@ -192,8 +198,12 @@ h1, h2, h3, .display {
 }
 .btn-primary:hover:not(:disabled) {
   background: linear-gradient(180deg, #DCC46A, #C9A84C);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 calc(var(--btn-depth) + 1px) 0 #7A6520,
+    0 14px 26px -10px rgba(201, 168, 76, 0.45);
 }
-.btn-primary:active {
+.btn-primary:active:not(:disabled) {
   transform: translateY(4px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.1),
@@ -343,6 +353,7 @@ h1, h2, h3, .display {
     background    var(--transition-fast),
     border-color  var(--transition-fast),
     box-shadow    var(--transition-base),
+    transform     220ms var(--ease-spring),
     color         var(--transition-fast);
 }
 .dropzone:hover {
@@ -355,6 +366,7 @@ h1, h2, h3, .display {
 .dropzone.drag-aktiv {
   border-color: var(--color-primary);
   color: var(--color-primary);
+  transform: scale(1.01);
   box-shadow:
     inset 0 2px 6px rgba(20, 14, 10, 0.5),
     0 0 20px rgba(201, 168, 76, 0.15);
@@ -417,26 +429,6 @@ h1, h2, h3, .display {
   border-radius: var(--radius-lg);
 }
 
-/* Corrections pane clipboard: riveted top edge */
-.split > .panel:last-child {
-  position: relative;
-}
-.split > .panel:last-child::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 6px;
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  background: linear-gradient(180deg, #4A4035, #342E29);
-  background-image:
-    radial-gradient(circle at 20%, #6B5E50 3px, transparent 3px),
-    radial-gradient(circle at 80%, #6B5E50 3px, transparent 3px);
-  background-size: 100% 6px;
-  background-repeat: no-repeat;
-}
-
 /* ── Original text: aged paper inset ────────────── */
 pre {
   white-space: pre-wrap;
@@ -489,9 +481,27 @@ pre {
   transition:
     border-color  var(--transition-fast),
     background    var(--transition-fast),
-    opacity       var(--transition-fast),
+    opacity       var(--transition-base),
+    transform     220ms var(--ease-spring-soft),
     box-shadow    var(--transition-fast);
   overflow: hidden;
+  animation: card-in 420ms var(--ease-out-quint) backwards;
+}
+
+/* Cascade: stagger the first cards in, cap the tail so long lists still settle */
+.karte:nth-child(1)  { animation-delay:  40ms; }
+.karte:nth-child(2)  { animation-delay:  90ms; }
+.karte:nth-child(3)  { animation-delay: 140ms; }
+.karte:nth-child(4)  { animation-delay: 190ms; }
+.karte:nth-child(5)  { animation-delay: 240ms; }
+.karte:nth-child(6)  { animation-delay: 290ms; }
+.karte:nth-child(7)  { animation-delay: 340ms; }
+.karte:nth-child(n+8) { animation-delay: 390ms; }
+
+/* Hover: gentle lift so cards feel pickable */
+.karte:not(.abgelehnt):hover {
+  transform: translateY(-2px);
+  border-color: var(--color-border);
 }
 
 /* Paper curl at bottom */
@@ -511,6 +521,7 @@ pre {
 /* Accepted: green stamp overlay */
 .karte.angenommen {
   border-color: rgba(39, 174, 96, 0.3);
+  animation: accept-flash 600ms ease-out;
 }
 .karte.angenommen::before {
   content: 'ANGENOMMEN';
@@ -518,6 +529,7 @@ pre {
   top: 50%;
   right: var(--space-4);
   transform: translateY(-50%) rotate(-12deg);
+  animation: stamp-in 480ms var(--ease-spring) both;
   font-family: var(--font-display);
   font-size: var(--text-sm);
   font-weight: var(--font-bold);
@@ -535,6 +547,7 @@ pre {
 /* Rejected: red diagonal slash */
 .karte.abgelehnt {
   opacity: 0.5;
+  animation: reject-flinch 360ms var(--ease-spring-soft);
 }
 .karte.abgelehnt::before {
   content: '';
@@ -553,6 +566,8 @@ pre {
   opacity: 0.4;
   pointer-events: none;
   border-radius: var(--radius-lg);
+  /* Wipe the slash on from top-left to bottom-right */
+  animation: slash-in 360ms var(--ease-out-quint) both;
 }
 
 .karte-kopf {
@@ -695,6 +710,7 @@ pre {
 }
 
 .sidebar-item {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -713,17 +729,31 @@ pre {
   transition:
     background     var(--transition-fast),
     border-color   var(--transition-fast),
+    transform      160ms var(--ease-spring),
     box-shadow     var(--transition-fast);
 }
 .sidebar-item:hover {
   background: var(--color-surface-raised);
   box-shadow: 0 2px 4px rgba(20, 14, 10, 0.2);
+  transform: translateX(2px);
 }
 .sidebar-item-active {
   background: var(--color-primary-light);
   color: var(--color-primary);
   font-weight: var(--font-medium);
   border-left-color: var(--color-primary);
+}
+/* Slide the amber rail in on selection instead of snapping */
+.sidebar-item-active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-primary);
+  transform-origin: center;
+  animation: rail-grow 220ms var(--ease-spring) both;
 }
 .sidebar-item-done { opacity: 0.6; }
 .sidebar-item-name {
@@ -923,6 +953,46 @@ pre {
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
+/* Corrections cascade in when a Zeugnis loads */
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Rubber-stamp slam: drop from above, overshoot, settle (keeps -50% centering) */
+@keyframes stamp-in {
+  0%   { opacity: 0;   transform: translateY(calc(-50% - 20px)) scale(1.5) rotate(-4deg); }
+  55%  { opacity: 0.6; transform: translateY(-50%) scale(0.9) rotate(-15deg); }
+  75%  {               transform: translateY(-50%) scale(1.04) rotate(-10deg); }
+  100% { opacity: 0.6; transform: translateY(-50%) rotate(-12deg); }
+}
+
+/* Soft green glow when a card is accepted */
+@keyframes accept-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); }
+  35%  { box-shadow: 0 0 18px 1px rgba(39, 174, 96, 0.35); }
+  100% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); }
+}
+
+/* Rejected card recoils down, then settles back */
+@keyframes reject-flinch {
+  0%   { transform: translateY(0); }
+  40%  { transform: translateY(4px); }
+  100% { transform: translateY(0); }
+}
+
+/* Diagonal slash wipes on from top-left to bottom-right */
+@keyframes slash-in {
+  from { clip-path: polygon(0 0, 0 0, 0 0, 0 0); }
+  to   { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+}
+
+/* Active sidebar rail grows in from the vertical centre */
+@keyframes rail-grow {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
 /* ── PDF Viewer ─────────────────────────────────────────── */
 .pdf-viewer {
   overflow: auto;
@@ -944,6 +1014,7 @@ pre {
 }
 
 .highlight-open {
-  border-bottom: 2px solid #facc15;
-  background: rgba(250, 204, 21, 0.2);
+  background: rgba(239, 68, 68, 0.25);
+  outline: 2px solid rgba(239, 68, 68, 0.8);
+  border-radius: 2px;
 }

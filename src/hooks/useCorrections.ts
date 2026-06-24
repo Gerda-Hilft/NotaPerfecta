@@ -27,7 +27,6 @@ interface CorrectionOptions {
 }
 
 export function useCorrections() {
-  const [text, setText] = useState("");
   const [path, setPath] = useState("");
   const [loadingKi, setLoadingKi] = useState(false);
   const [error, setError] = useState("");
@@ -42,8 +41,6 @@ export function useCorrections() {
   async function analysiere(pdfPath: string, opts?: CorrectionOptions) {
     setError("");
     setPath(pdfPath);
-    const extracted = await invoke<string>("extract_text_from_pdf", { path: pdfPath });
-    setText(extracted);
 
     const ollamaUrl = opts?.ollamaUrl || "http://127.0.0.1:11434";
     const modelOverride = opts?.ollamaModel || "";
@@ -52,7 +49,7 @@ export function useCorrections() {
     try {
       const [aiData, formData] = await Promise.all([
         invoke<BackendSuggestion[]>("check_spelling_ai", {
-          text: extracted,
+          path: pdfPath,
           ollamaUrl,
           modelOverride,
         }).catch((e: unknown) => {
@@ -89,7 +86,6 @@ export function useCorrections() {
   }
 
   return {
-    text,
     path,
     loadingKi,
     error,

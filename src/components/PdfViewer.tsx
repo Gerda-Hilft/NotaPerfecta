@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { invoke } from "@tauri-apps/api/core";
 import type { KorrekturVorschlag } from "../types/corrections";
 import { buildPageLayout, findHighlights } from "../lib/pdfHighlight";
 import type { HighlightRect, PageGeometry } from "../lib/pdfHighlight";
@@ -35,14 +35,23 @@ export function PdfViewer({ pdfPath, suggestions }: Props) {
     setGeometries([]);
     container.innerHTML = "";
 
+    const runId = Math.random().toString(36).slice(2, 7);
+    console.debug(`[PdfViewer ${runId}] start`, pdfPath);
+
     (async () => {
       try {
-        const pdf = await pdfjsLib.getDocument({ url: convertFileSrc(pdfPath) }).promise;
+        const bytes = await invoke<number[]>("read_pdf_bytes", { path: pdfPath });
+        console.debug(`[PdfViewer ${runId}] got ${bytes.length} bytes, cancelled=${cancelled}`);
+        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(bytes) }).promise;
+        console.debug(`[PdfViewer ${runId}] doc loaded, ${pdf.numPages} pages, cancelled=${cancelled}`);
         const newGeometries: PageGeometry[] = [];
         let topOffset = 0;
 
         for (let i = 1; i <= pdf.numPages; i++) {
-          if (cancelled) return;
+          if (cancelled) {
+            console.debug(`[PdfViewer ${runId}] cancelled before page ${i}`);
+            return;
+          }
 
           const page = await pdf.getPage(i);
           const viewport = page.getViewport({ scale: SCALE });
@@ -54,7 +63,9 @@ export function PdfViewer({ pdfPath, suggestions }: Props) {
           container.appendChild(canvas);
 
           const ctx = canvas.getContext("2d")!;
+          console.debug(`[PdfViewer ${runId}] rendering page ${i}, cancelled=${cancelled}`);
           await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+          console.debug(`[PdfViewer ${runId}] rendered page ${i}, cancelled=${cancelled}`);
 
           const layout = await buildPageLayout(page, SCALE);
           newGeometries.push({
@@ -71,9 +82,10 @@ export function PdfViewer({ pdfPath, suggestions }: Props) {
           setLoading(false);
         }
       } catch (e) {
+        console.error(`[PdfViewer ${runId}] FAILED (cancelled=${cancelled}):`, e);
         if (!cancelled) {
           setLoading(false);
-          setLoadError("PDF konnte nicht geladen werden.");
+          setLoadError(`PDF konnte nicht geladen werden: ${e instanceof Error ? e.message : String(e)}`);
         }
       }
     })();
@@ -115,6 +127,7 @@ export function PdfViewer({ pdfPath, suggestions }: Props) {
               width: containerWidth,
               height: containerHeight,
               pointerEvents: "none",
+              zIndex: 2,
             }}
           >
             {highlights.map((rect, i) => {
@@ -164,6 +177,8 @@ function AcceptedHighlight({
           position: "absolute",
           inset: 0,
           background: "var(--color-paper, #fff)",
+          outline: "2px solid rgba(22, 163, 74, 0.7)",
+          borderRadius: 2,
         }}
       />
       <span
@@ -175,7 +190,7 @@ function AcceptedHighlight({
           lineHeight: 1,
           color: "#16a34a",
           whiteSpace: "nowrap",
-          borderBottom: "2px solid #16a34a",
+          fontWeight: "bold",
         }}
       >
         {correction}
