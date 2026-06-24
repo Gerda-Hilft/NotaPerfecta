@@ -1,3 +1,5 @@
+use super::pdf;
+use super::zeugnis::Zeugnis;
 use crate::models::{AiSuggestion, RawAiSuggestion};
 use regex::Regex;
 use reqwest::Client;
@@ -7,7 +9,7 @@ fn prompt(text: &str) -> String {
     format!(
         r#"Du bist ein spezialisierter Lektor für sächsische Schulzeugnisse (Halbjahresinformationen Kl. 5–9, Halbjahreszeugnisse Kl. 10).
 
-Der folgende Text wurde aus einem Zeugnis-PDF extrahiert. Prüfe NUR den Freitext in den Bemerkungen auf Rechtschreib-, Grammatik- und Zeichensetzungsfehler.
+Der folgende Text wurde aus einem Zeugnis-PDF extrahiert. Beim PDF-Export kann es vorkommen, dass einzelne Buchstaben durch Leerzeichen ersetzt werden (z. B. „un ntschuldigt" statt „unentschuldigt"). Prüfe NUR den Freitext in den Bemerkungen auf Rechtschreib-, Grammatik- und Zeichensetzungsfehler — einschließlich solcher Export-Artefakte.
 
 Formvorschriften (Notentendenzen, Versetzungsgefährdung, Standard-Bemerkungen) werden separat geprüft — melde dazu NICHTS.
 
@@ -17,8 +19,13 @@ NIEMALS als Fehler melden:
 • Geschlechtergerechte Formen (Lehrerinnen, Schülerin, Lehrer:innen usw.)
 • Zahlen, Daten, Klassenstufen, Schuljahre, Noten
 • Notenerläuterung
-• Standardformulierungen: „Versetzung … gefährdet", „Fehltage entschuldigt:", „erteilt"
+• Standardformulierungen wenn sie KORREKT geschrieben sind: „Versetzung … gefährdet", „Fehltage entschuldigt:", „unentschuldigt", „erteilt"
 • Stilistische Alternativen — nur eindeutige Fehler
+
+IMMER als Fehler melden:
+• Eindeutige Tippfehler (fehlende, vertauschte oder zusätzliche Buchstaben) in JEDEM Wort, auch wenn es einer Standardformulierung ähnelt. Beispiel: „unetschuldigt" statt „unentschuldigt" ist ein Rechtschreibfehler.
+• Export-Artefakte: Wörter, bei denen ein Buchstabe durch ein Leerzeichen ersetzt wurde (z. B. „un ntschuldigt", „entsc huldigt"). Das „original" ist das betroffene Wortfragment inkl. des falsch platzierten Leerzeichens; „korrektur" ist das korrekte zusammengeschriebene Wort; „typ" ist „Rechtschreibung".
+• Das Feld „original" muss das kleinste fehlerhafte Textstück enthalten (einzelnes Wort oder Fragment, nicht den gesamten Satz oder das Label).
 
 Bei Unsicherheit: NICHT melden.
 
@@ -47,40 +54,106 @@ const GENDER_SUFFIXES: [&str; 2] = ["innen", "in"];
 const GENDER_SEPARATORS: [char; 5] = ['*', ':', '_', '/', '-'];
 
 const ZEUGNIS_IGNORE: &[&str] = &[
-    "Halbjahresinformation", "Halbjahreszeugnis", "Jahreszeugnis",
-    "Gymnasium", "Gymnasiums", "Schulhalbjahr", "Klassenstufe",
-    "Fremdsprache", "Wahlpflichtbereich",
-    "Notenerläuterung", "Klassenlehrer", "Klassenlehrer(in)", "Klassenlehrerin",
-    "Betragen", "Mitarbeit", "Fleiß", "Ordnung",
-    "Deutsch", "Mathematik", "Englisch", "Biologie", "Französisch", "Chemie",
-    "Kunst", "Physik", "Musik", "Sport", "Geschichte", "Ethik", "Religion",
-    "Gemeinschaftskunde", "Rechtserziehung", "Wirtschaft", "Geographie",
-    "Informatik", "Technik", "Computer",
-    "sehr gut", "gut", "befriedigend", "ausreichend", "mangelhaft", "ungenügend",
-    "entschuldigt", "unentschuldigt", "Fehltage", "Bemerkungen",
-    "Versetzung", "gefährdet", "versetzungsgefährdet",
-    "erteilt", "nicht erteilt", "teilgenommen", "befreit", "nicht bewertet",
-    "keine Benotung", "Zusatzstunde",
-    "Freistaat", "Sachsen", "schulspezifisches", "Profil",
-    "Kenntnis", "genommen",
-    "Lernen lernen", "individuelle Förderung", "Urban Dance",
-    "Laufbahn", "M.I.T.",
-    "Klassenkonferenz", "Schulleiterin",
+    "Halbjahresinformation",
+    "Halbjahreszeugnis",
+    "Jahreszeugnis",
+    "Gymnasium",
+    "Gymnasiums",
+    "Schulhalbjahr",
+    "Klassenstufe",
+    "Fremdsprache",
+    "Wahlpflichtbereich",
+    "Notenerläuterung",
+    "Klassenlehrer",
+    "Klassenlehrer(in)",
+    "Klassenlehrerin",
+    "Betragen",
+    "Mitarbeit",
+    "Fleiß",
+    "Ordnung",
+    "Deutsch",
+    "Mathematik",
+    "Englisch",
+    "Biologie",
+    "Französisch",
+    "Chemie",
+    "Kunst",
+    "Physik",
+    "Musik",
+    "Sport",
+    "Geschichte",
+    "Ethik",
+    "Religion",
+    "Gemeinschaftskunde",
+    "Rechtserziehung",
+    "Wirtschaft",
+    "Geographie",
+    "Informatik",
+    "Technik",
+    "Computer",
+    "sehr gut",
+    "gut",
+    "befriedigend",
+    "ausreichend",
+    "mangelhaft",
+    "ungenügend",
+    "entschuldigt",
+    "unentschuldigt",
+    "Fehltage",
+    "Bemerkungen",
+    "Versetzung",
+    "gefährdet",
+    "versetzungsgefährdet",
+    "erteilt",
+    "nicht erteilt",
+    "teilgenommen",
+    "befreit",
+    "nicht bewertet",
+    "keine Benotung",
+    "Zusatzstunde",
+    "Freistaat",
+    "Sachsen",
+    "schulspezifisches",
+    "Profil",
+    "Kenntnis",
+    "genommen",
+    "Lernen lernen",
+    "individuelle Förderung",
+    "Urban Dance",
+    "Laufbahn",
+    "M.I.T.",
+    "Klassenkonferenz",
+    "Schulleiterin",
 ];
 
 fn is_zeugnis_term(original: &str) -> bool {
     let trimmed = original.trim();
-    ZEUGNIS_IGNORE.iter().any(|term| {
-        trimmed.eq_ignore_ascii_case(term) || trimmed.contains(term)
-    })
+    ZEUGNIS_IGNORE
+        .iter()
+        .any(|term| trimmed.eq_ignore_ascii_case(term))
 }
 
 fn is_grade(s: &str) -> bool {
     let t = s.trim();
     matches!(
         t,
-        "1" | "1+" | "1-" | "2" | "2+" | "2-" | "3" | "3+" | "3-"
-            | "4" | "4+" | "4-" | "5" | "5+" | "5-" | "6" | "-"
+        "1" | "1+"
+            | "1-"
+            | "2"
+            | "2+"
+            | "2-"
+            | "3"
+            | "3+"
+            | "3-"
+            | "4"
+            | "4+"
+            | "4-"
+            | "5"
+            | "5+"
+            | "5-"
+            | "6"
+            | "6+"
+            | "-"
     )
 }
 
@@ -166,10 +239,18 @@ pub async fn list_ollama_models(ollama_url: String) -> Result<Vec<String>, Strin
 }
 
 pub async fn check_spelling_ai(
-    text: String,
+    path: String,
     ollama_url: String,
     model_override: String,
 ) -> Result<Vec<AiSuggestion>, String> {
+    // The AI is tuned on the canonical text: same skeleton for every Zeugnis,
+    // only the values differ. Fall back to raw extraction if the PDF is not a
+    // recognized report form, so we never check less than before.
+    let text = match Zeugnis::from_pdf(&path) {
+        Ok(z) => z.to_canonical_text(),
+        Err(_) => pdf::extract_text_from_pdf(path).await?,
+    };
+
     let base = ollama_url.trim_end_matches('/');
     let client = Client::new();
 

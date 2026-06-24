@@ -12,7 +12,11 @@ import { useSettings } from "./hooks/useSettings";
 import { PdfViewer } from "./components/PdfViewer";
 
 function App() {
-  const { settings, update: updateSettings, reset: resetSettings } = useSettings();
+  const {
+    settings,
+    update: updateSettings,
+    reset: resetSettings,
+  } = useSettings();
   const [meldung, setMeldung] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -70,7 +74,7 @@ function App() {
       <Background />
       <main className="app">
         <div className="app-header">
-          <h1>NotaPerfecta — Zeugnisprüfung</h1>
+          <h1>NotaPerfecta</h1>
           <div className="app-header-actions">
             <button
               className="btn btn-outline btn-sm"
@@ -82,10 +86,16 @@ function App() {
         </div>
 
         {!inFolderMode && (
-          <DropZone onFileSelected={onFile} onFolderSelected={onFolder} onFehler={onFehler} />
+          <DropZone
+            onFileSelected={onFile}
+            onFolderSelected={onFolder}
+            onFehler={onFehler}
+          />
         )}
 
-        {(single.error || meldung) && <p className="meldung">{single.error || meldung}</p>}
+        {(single.error || meldung) && (
+          <p className="meldung">{single.error || meldung}</p>
+        )}
 
         {inFolderMode ? (
           <div className="folder-layout">
@@ -101,7 +111,9 @@ function App() {
             <div className="folder-main">
               {current === null ? (
                 <div className="folder-empty panel">
-                  <p>Wähle ein Zeugnis aus der Liste, um Korrekturen zu prüfen.</p>
+                  <p>
+                    Wähle ein Zeugnis aus der Liste, um Korrekturen zu prüfen.
+                  </p>
                 </div>
               ) : current.phase === "wird-analysiert" ? (
                 <div className="folder-empty panel">
@@ -117,13 +129,19 @@ function App() {
                 <>
                   <article className="panel folder-panel">
                     <h2>Originaltext — {current.filename}</h2>
-                    <PdfViewer pdfPath={current.path} suggestions={current.vorschlaege} />
+                    <PdfViewer
+                      pdfPath={current.path}
+                      suggestions={current.vorschlaege}
+                    />
                   </article>
                   <article className="panel folder-panel">
                     <h2>
                       Korrekturen
                       {current.vorschlaege.length > 0 && (
-                        <span className="badge" style={{ marginLeft: "0.5rem" }}>
+                        <span
+                          className="badge"
+                          style={{ marginLeft: "0.5rem" }}
+                        >
                           {current.vorschlaege.length}
                         </span>
                       )}
@@ -131,10 +149,16 @@ function App() {
                     {current.vorschlaege.length > 0 ? (
                       <>
                         <div className="toolbar">
-                          <button className="btn btn-outline btn-sm" onClick={() => folder.bulk("angenommen")}>
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() => folder.bulk("angenommen")}
+                          >
                             Alle annehmen
                           </button>
-                          <button className="btn btn-outline btn-sm" onClick={() => folder.bulk("abgelehnt")}>
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() => folder.bulk("abgelehnt")}
+                          >
                             Alle ablehnen
                           </button>
                         </div>
@@ -145,7 +169,9 @@ function App() {
                         />
                       </>
                     ) : (
-                      <p style={{ color: "var(--color-success)" }}>Keine Fehler gefunden.</p>
+                      <p style={{ color: "var(--color-success)" }}>
+                        Keine Fehler gefunden.
+                      </p>
                     )}
                   </article>
                 </>
@@ -155,9 +181,15 @@ function App() {
         ) : (
           <>
             <div className="status">
-              <span className="badge">{single.status.gesamt} Fehler gefunden</span>
-              <span className="badge badge-success">{single.status.angenommen} angenommen</span>
-              <span className="badge badge-muted">{single.status.abgelehnt} abgelehnt</span>
+              <span className="badge">
+                {single.status.gesamt} Fehler gefunden
+              </span>
+              <span className="badge badge-success">
+                {single.status.angenommen} angenommen
+              </span>
+              <span className="badge badge-muted">
+                {single.status.abgelehnt} abgelehnt
+              </span>
             </div>
 
             {single.loadingKi && (
@@ -170,9 +202,17 @@ function App() {
               <article className="panel">
                 <h2>Originaltext</h2>
                 {single.path ? (
-                  <PdfViewer pdfPath={single.path} suggestions={single.vorschlaege} />
+                  <PdfViewer
+                    pdfPath={single.path}
+                    suggestions={single.vorschlaege}
+                  />
                 ) : (
-                  <p style={{ color: "var(--color-muted, #888)", padding: "1rem" }}>
+                  <p
+                    style={{
+                      color: "var(--color-muted, #888)",
+                      padding: "1rem",
+                    }}
+                  >
                     Noch kein Zeugnis geladen.
                   </p>
                 )}
@@ -180,13 +220,22 @@ function App() {
               <article className="panel">
                 <h2>Korrekturen</h2>
                 <div className="toolbar">
-                  <button className="btn btn-outline btn-sm" onClick={() => single.bulk("angenommen")}>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => single.bulk("angenommen")}
+                  >
                     Alle annehmen
                   </button>
-                  <button className="btn btn-outline btn-sm" onClick={() => single.bulk("abgelehnt")}>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => single.bulk("abgelehnt")}
+                  >
                     Alle ablehnen
                   </button>
-                  <ExportButton disabled={!single.vorschlaege.length} onExport={onExportSingle} />
+                  <ExportButton
+                    disabled={!single.vorschlaege.length}
+                    onExport={onExportSingle}
+                  />
                 </div>
                 <CorrectionList
                   suggestions={single.vorschlaege}

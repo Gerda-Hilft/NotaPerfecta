@@ -27,7 +27,6 @@ export interface DateiEintrag {
   path: string;
   filename: string;
   phase: DateiPhase;
-  text: string;
   vorschlaege: KorrekturVorschlag[];
   error: string | null;
 }
@@ -62,7 +61,6 @@ export function useFolderSession() {
         path: f,
         filename: f.split(/[/\\]/).pop() || f,
         phase: "wartend" as const,
-        text: "",
         vorschlaege: [],
         error: null,
       })),
@@ -82,11 +80,9 @@ export function useFolderSession() {
     );
 
     try {
-      const text = await invoke<string>("extract_text_from_pdf", { path: pfad });
-
       const [aiSuggestions, formSuggestions] = await Promise.all([
         invoke<BackendSuggestion[]>("check_spelling_ai", {
-          text,
+          path: pfad,
           ollamaUrl: opts.ollamaUrl,
           modelOverride: opts.ollamaModel,
         }).catch(() => [] as BackendSuggestion[]),
@@ -99,7 +95,7 @@ export function useFolderSession() {
       setDateien((prev) =>
         prev.map((d) =>
           d.path === pfad
-            ? { ...d, phase: "analysiert" as const, text, vorschlaege: dedupe(suggestions), error: null }
+            ? { ...d, phase: "analysiert" as const, vorschlaege: dedupe(suggestions), error: null }
             : d,
         ),
       );
