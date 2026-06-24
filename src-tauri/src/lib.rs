@@ -2,7 +2,7 @@ mod commands;
 mod models;
 
 use commands::{export, formcheck, ollama, pdf};
-use models::{AiSuggestion, Correction};
+use models::{AiSuggestion, Correction, ExportResult};
 use std::path::Path;
 
 #[tauri::command]
@@ -75,7 +75,7 @@ async fn export_corrected_pdf(
     original_path: String,
     accepted_corrections: Vec<Correction>,
     output_dir: Option<String>,
-) -> Result<String, String> {
+) -> Result<ExportResult, String> {
     export::export_corrected_pdf(original_path, accepted_corrections, output_dir).await
 }
 

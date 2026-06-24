@@ -1,4 +1,4 @@
-use crate::models::Correction;
+use crate::models::{Correction, ExportResult};
 use lopdf::content::Content;
 use lopdf::{Document, Object, ObjectId};
 use std::collections::HashMap;
@@ -351,7 +351,7 @@ fn correct_document(
     original_path: &str,
     accepted_corrections: Vec<Correction>,
     target: &PathBuf,
-) -> Result<String, String> {
+) -> Result<ExportResult, String> {
     let mut doc = Document::load(original_path)
         .map_err(|e| format!("PDF konnte nicht geladen werden: {e}"))?;
 
@@ -359,6 +359,7 @@ fn correct_document(
         .into_iter()
         .map(|c| (c.original, c.correction))
         .collect();
+    let requested = corrections.len();
 
     let page_ids: Vec<_> = doc.get_pages().values().cloned().collect();
 
@@ -423,14 +424,19 @@ fn correct_document(
     doc.save(target)
         .map_err(|e| format!("PDF konnte nicht gespeichert werden: {e}"))?;
 
-    Ok(target.to_string_lossy().to_string())
+    let applied = requested - corrections.len();
+    Ok(ExportResult {
+        path: target.to_string_lossy().to_string(),
+        applied,
+        requested,
+    })
 }
 
 pub async fn export_corrected_pdf(
     original_path: String,
     accepted_corrections: Vec<Correction>,
     output_dir: Option<String>,
-) -> Result<String, String> {
+) -> Result<ExportResult, String> {
     let target = if let Some(dir) = output_dir {
         std::fs::create_dir_all(&dir)
             .map_err(|e| format!("Ordner konnte nicht erstellt werden: {e}"))?;
@@ -515,7 +521,9 @@ endcmap
         }];
 
         let result = correct_document(pdf, corrections, &target);
-        assert!(result.is_ok(), "Export failed: {:?}", result.err());
+        let export = result.as_ref().expect("Export failed");
+        assert_eq!(export.applied, 1, "Expected 1 correction applied");
+        assert_eq!(export.requested, 1);
 
         let output = std::process::Command::new("pdftotext")
             .args(["-nopgbrk", target.to_str().unwrap(), "-"])
@@ -552,7 +560,8 @@ endcmap
         }];
 
         let result = correct_document(pdf, corrections, &target);
-        assert!(result.is_ok(), "Export failed: {:?}", result.err());
+        let export = result.as_ref().expect("Export failed");
+        assert_eq!(export.applied, 1, "Expected 1 correction applied");
 
         let output = std::process::Command::new("pdftotext")
             .args(["-nopgbrk", target.to_str().unwrap(), "-"])

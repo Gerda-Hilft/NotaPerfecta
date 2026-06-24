@@ -18,6 +18,13 @@ pub struct Correction {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExportResult {
+    pub path: String,
+    pub applied: usize,
+    pub requested: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RawAiSuggestion {
     pub original: String,
     #[serde(alias = "korrektur")]
