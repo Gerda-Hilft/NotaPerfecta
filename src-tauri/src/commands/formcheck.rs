@@ -77,7 +77,9 @@ pub fn check(path: &str) -> Result<Vec<AiSuggestion>, String> {
                 correction: format!("{name} {digit}"),
                 kind: "Formvorschrift".into(),
                 position: pos,
-                explanation: "Kopfnoten werden als Ziffern ohne Tendenz eingetragen (§25 Abs. 8 SOGYA).".into(),
+                explanation:
+                    "Kopfnoten werden als Ziffern ohne Tendenz eingetragen (§25 Abs. 8 SOGYA)."
+                        .into(),
             });
             pos += 1;
         }
@@ -108,8 +110,8 @@ pub fn check(path: &str) -> Result<Vec<AiSuggestion>, String> {
         .any(|n| grade_value(n).is_some_and(|v| v >= threshold));
 
     let bm = z.bemerkungen_text().to_lowercase();
-    let has_vermerk =
-        (bm.contains("versetzung") && bm.contains("gefährdet")) || bm.contains("versetzungsgefährdet");
+    let has_vermerk = (bm.contains("versetzung") && bm.contains("gefährdet"))
+        || bm.contains("versetzungsgefährdet");
 
     if has_bad_grade && !has_vermerk {
         let schwelle = if z.is_halbjahreszeugnis() { "5" } else { "4-" };
@@ -135,7 +137,7 @@ pub fn check(path: &str) -> Result<Vec<AiSuggestion>, String> {
                 kind: "Formvorschrift".into(),
                 position: pos,
                 explanation: format!(
-                    "Standard-Bemerkung für Klassenstufe {} der Gerda-Taro-Schule fehlt.",
+                    "Standard-Bemerkung für Klassenstufe {} der Schule fehlt.",
                     z.klassenstufe()
                 ),
             });
