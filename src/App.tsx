@@ -1,50 +1,292 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useState } from "react";
 import "./App.css";
+import { Background } from "./components/Background";
+import { CorrectionList } from "./components/CorrectionList";
+import { DropZone } from "./components/DropZone";
+import { ExportButton } from "./components/ExportButton";
+import { FolderSidebar } from "./components/FolderSidebar";
+import { SettingsDialog } from "./components/SettingsDialog";
+import { useCorrections } from "./hooks/useCorrections";
+import { useFolderSession } from "./hooks/useFolderSession";
+import { useNotifications } from "./hooks/useNotifications";
+import { useSettings } from "./hooks/useSettings";
+import { PdfViewer } from "./components/PdfViewer";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const {
+    settings,
+    update: updateSettings,
+    reset: resetSettings,
+  } = useSettings();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { notify } = useNotifications();
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+  const single = useCorrections();
+  const folder = useFolderSession();
+
+  const inFolderMode = folder.ordner !== null;
+
+  useEffect(() => {
+    if (single.error) {
+      notify({ title: "Ollama request failed", message: single.error, type: "error" });
+    }
+  }, [single.error, notify]);
+
+  async function onFile(path: string) {
+    folder.schliesseOrdner();
+    try {
+      await single.analysiere(path, {
+        ollamaUrl: settings.ollamaUrl,
+        ollamaModel: settings.ollamaModel,
+      });
+    } catch (e) {
+      notify({ title: "Fehler beim Verarbeiten", message: String(e), type: "error" });
+    }
   }
 
+  async function onFolder(path: string) {
+    try {
+      await folder.oeffneOrdner(path);
+    } catch (e) {
+      notify({ title: "Ordner öffnen fehlgeschlagen", message: String(e), type: "error" });
+    }
+  }
+
+  function onFehler(nachricht: string) {
+    notify({ title: "Fehler", message: nachricht, type: "error" });
+  }
+
+  async function onExportSingle() {
+    const accepted = single.vorschlaege.filter(
+      (v) => v.status === "angenommen",
+    );
+    if (accepted.length === 0) {
+      notify({ title: "Alles gut", message: "Keine Fehler gefunden.", type: "success" });
+      return;
+    }
+    try {
+      const result = await single.exportiere();
+      if (result.applied === 0) {
+        notify({
+          title: "Export",
+          message: `${result.requested} Korrekturen konnten im PDF nicht gefunden werden.`,
+          type: "warning",
+        });
+      } else if (result.applied < result.requested) {
+        const missed = result.requested - result.applied;
+        notify({
+          title: "Export abgeschlossen",
+          message: `${result.path} (${result.applied} angewendet, ${missed} nicht gefunden)`,
+          type: "warning",
+        });
+      } else {
+        notify({ title: "Export abgeschlossen", message: result.path, type: "success" });
+      }
+    } catch (e) {
+      notify({ title: "Export fehlgeschlagen", message: String(e), type: "error" });
+    }
+  }
+
+  async function onSelectDatei(pfad: string) {
+    await folder.waehleDatei(pfad, {
+      ollamaUrl: settings.ollamaUrl,
+      ollamaModel: settings.ollamaModel,
+    });
+  }
+
+  const current = folder.aktuell;
+
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+    <div className="app-shell">
+      <Background />
+      <main className="app">
+        <div className="app-header">
+          <h1>NotaPerfecta</h1>
+          <div className="app-header-actions">
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => setSettingsOpen(true)}
+            >
+              Einstellungen
+            </button>
+          </div>
+        </div>
 
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
+        {!inFolderMode && (
+          <DropZone
+            onFileSelected={onFile}
+            onFolderSelected={onFolder}
+            onFehler={onFehler}
+          />
+        )}
 
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+        {inFolderMode ? (
+          <div className="folder-layout">
+            <FolderSidebar
+              ordnerName={folder.ordner!}
+              dateien={folder.dateien}
+              aktuellerPfad={folder.aktuellerPfad}
+              exportStatus={folder.exportStatus}
+              onSelect={onSelectDatei}
+              onExportAll={folder.exportiereAlle}
+              onClose={folder.schliesseOrdner}
+            />
+            <div className="folder-main">
+              {current === null ? (
+                <div className="folder-empty panel">
+                  <p>
+                    Wähle ein Zeugnis aus der Liste, um Korrekturen zu prüfen.
+                  </p>
+                </div>
+              ) : current.phase === "wird-analysiert" ? (
+                <div className="folder-empty panel">
+                  <div className="loading">
+                    <span>Wird analysiert…</span>
+                  </div>
+                </div>
+              ) : current.phase === "fehler" ? (
+                <div className="panel">
+                  <p className="meldung">{current.error}</p>
+                </div>
+              ) : (
+                <>
+                  <article className="panel folder-panel">
+                    <h2>Originaltext — {current.filename}</h2>
+                    <PdfViewer
+                      pdfPath={current.path}
+                      suggestions={current.vorschlaege}
+                    />
+                  </article>
+                  <article className="panel folder-panel">
+                    <h2>
+                      Korrekturen
+                      {current.vorschlaege.length > 0 && (
+                        <span
+                          className="badge"
+                          style={{ marginLeft: "0.5rem" }}
+                        >
+                          {current.vorschlaege.length}
+                        </span>
+                      )}
+                    </h2>
+                    {current.vorschlaege.length > 0 ? (
+                      <>
+                        <div className="toolbar">
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() => folder.bulk("angenommen")}
+                          >
+                            Alle annehmen
+                          </button>
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() => folder.bulk("abgelehnt")}
+                          >
+                            Alle ablehnen
+                          </button>
+                        </div>
+                        <CorrectionList
+                          suggestions={current.vorschlaege}
+                          onAccept={(id) => folder.markiere(id, "angenommen")}
+                          onReject={(id) => folder.markiere(id, "abgelehnt")}
+                        />
+                      </>
+                    ) : (
+                      <p style={{ color: "var(--color-success)" }}>
+                        Keine Fehler gefunden.
+                      </p>
+                    )}
+                  </article>
+                </>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="status">
+              <span className="badge">
+                {single.status.gesamt} Fehler gefunden
+              </span>
+              <span className="badge badge-success">
+                {single.status.angenommen} angenommen
+              </span>
+              <span className="badge badge-muted">
+                {single.status.abgelehnt} abgelehnt
+              </span>
+            </div>
+
+            {single.loadingKi && (
+              <div className="loading">
+                <span>KI analysiert…</span>
+              </div>
+            )}
+
+            <section className="split">
+              <article className="panel">
+                <h2>Originaltext</h2>
+                {single.path ? (
+                  <PdfViewer
+                    pdfPath={single.path}
+                    suggestions={single.vorschlaege}
+                  />
+                ) : (
+                  <p
+                    style={{
+                      color: "var(--color-muted, #888)",
+                      padding: "1rem",
+                    }}
+                  >
+                    Noch kein Zeugnis geladen.
+                  </p>
+                )}
+              </article>
+              <article className="panel">
+                <h2>Korrekturen</h2>
+                {single.path && !single.loadingKi && single.vorschlaege.length === 0 ? (
+                  <p style={{ color: "var(--color-success)" }}>
+                    Alles gut, keine Fehler gefunden.
+                  </p>
+                ) : (
+                  <>
+                    <div className="toolbar">
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => single.bulk("angenommen")}
+                      >
+                        Alle annehmen
+                      </button>
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => single.bulk("abgelehnt")}
+                      >
+                        Alle ablehnen
+                      </button>
+                      <ExportButton
+                        disabled={!single.vorschlaege.length}
+                        onExport={onExportSingle}
+                      />
+                    </div>
+                    <CorrectionList
+                      suggestions={single.vorschlaege}
+                      onAccept={(id) => single.markiere(id, "angenommen")}
+                      onReject={(id) => single.markiere(id, "abgelehnt")}
+                    />
+                  </>
+                )}
+              </article>
+            </section>
+          </>
+        )}
+
+        <SettingsDialog
+          open={settingsOpen}
+          settings={settings}
+          onUpdate={updateSettings}
+          onReset={resetSettings}
+          onClose={() => setSettingsOpen(false)}
         />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+      </main>
+    </div>
   );
 }
 

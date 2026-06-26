@@ -1,0 +1,114 @@
+/* src/styles/tokens.css — Skeuomorphic dark-mode design tokens */
+@import "./fonts.css";
+
+:root {
+    color-scheme: dark;
+
+    /* -- Fonts ------------------------------------------------- */
+    --font-sans: "Atkinson Hyperlegible", ui-sans-serif, system-ui, sans-serif;
+    --font-display:
+        "Playfair Display", ui-serif, Georgia, "Times New Roman", serif;
+    --font-mono:
+        "Special Elite", "Courier Prime", ui-monospace, Menlo, monospace;
+
+    /* -- Palette ----------------------------------------------- */
+    --color-bg: #1a1612;
+    --color-surface: #2a2420;
+    --color-surface-raised: #342e29;
+    --color-surface-inset: #1e1a15;
+    --color-border: #4a4035;
+    --color-border-subtle: #3a3228;
+
+    --color-text: #ede8df;
+    --color-text-secondary: #b8b0a4;
+    --color-text-muted: #8c8278;
+
+    --color-primary: #c9a84c;
+    --color-primary-hover: #d4b85c;
+    --color-primary-light: rgba(201, 168, 76, 0.12);
+    --color-primary-border: #8a7430;
+    --color-accent: #c9a84c;
+    --color-accent-soft: rgba(201, 168, 76, 0.08);
+
+    --color-danger: #c0392b;
+    --color-danger-bg: rgba(192, 57, 43, 0.12);
+    --color-danger-border: rgba(192, 57, 43, 0.25);
+    --color-warning: #d4a84c;
+    --color-warning-bg: rgba(212, 168, 76, 0.12);
+    --color-warning-border: rgba(212, 168, 76, 0.25);
+    --color-success: #27ae60;
+    --color-success-bg: rgba(39, 174, 96, 0.1);
+    --color-paper: #fff;
+
+    /* -- Typography scale -------------------------------------- */
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+    --text-3xl: 1.875rem;
+
+    --leading-tight: 1.25;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.7;
+
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+
+    --tracking-tight: -0.01em;
+    --tracking-wide: 0.05em;
+    --tracking-widest: 0.16em;
+
+    --body-size: 17px;
+    --body-line-height: 1.7;
+
+    /* -- Radii (machined edges, 6-12px) ----------------------- */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-xl: 12px;
+    --radius-2xl: 12px;
+    --radius-full: 9999px;
+
+    /* -- Shadows (warm-tinted, never cold grey) ---------------- */
+    --shadow-sm: 0 2px 4px rgba(20, 14, 10, 0.5);
+    --shadow-md: 0 6px 16px rgba(20, 14, 10, 0.6);
+    --shadow-lg: 0 12px 32px rgba(20, 14, 10, 0.7);
+
+    /* -- 3D button system (dark resin) ------------------------- */
+    --btn-3d-top: #3e3630;
+    --btn-3d-bottom: #2a2420;
+    --btn-3d-border: #4a4035;
+    --btn-3d-shadow: #1a1612;
+
+    /* -- Spacing ----------------------------------------------- */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+
+    /* -- Motion ------------------------------------------------ */
+    --transition-fast: 160ms ease;
+    --transition-base: 220ms ease;
+
+    /* Spring curves: overshoot + settle, for tactile/playful motion */
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-spring-soft: cubic-bezier(0.22, 1.2, 0.36, 1);
+    --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
