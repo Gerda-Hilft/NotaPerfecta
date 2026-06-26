@@ -37,8 +37,10 @@ jobs:
             libwebkit2gtk-4.1-dev \
             libappindicator3-dev \
             librsvg2-dev \
-            patchelf \
-            linuxdeploy
+            patchelf
+          wget -q -O /usr/local/bin/linuxdeploy \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x /usr/local/bin/linuxdeploy
 
       - uses: oven-sh/setup-bun@v2
 
