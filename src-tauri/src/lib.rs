@@ -81,6 +81,19 @@ async fn export_corrected_pdf(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // WebKitGTK 2.42+ ships a DMABUF-based renderer that paints a blank white
+    // window on many Linux GPU/driver/compositor combinations (NVIDIA proprietary
+    // drivers, some Mesa/AMD/Intel setups, VMs, and bleeding-edge distros such as
+    // Arch/CachyOS). The window and WebKit load fine, but the web content never
+    // renders. Forcing the legacy renderer fixes the white screen. Only set it when
+    // the user hasn't chosen a value so it stays overridable.
+    #[cfg(target_os = "linux")]
+    {
+        if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+            std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+        }
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
